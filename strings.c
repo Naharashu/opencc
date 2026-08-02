@@ -1,4 +1,4 @@
-#include "chibicc.h"
+#include "opencc.h"
 
 void strarray_push(StringArray *arr, char *s) {
   if (!arr->data) {

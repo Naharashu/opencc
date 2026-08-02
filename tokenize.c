@@ -1,4 +1,4 @@
-#include "chibicc.h"
+#include "opencc.h"
 
 // Input file
 static File *current_file;

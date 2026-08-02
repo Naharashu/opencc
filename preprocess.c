@@ -22,7 +22,7 @@
 // standard's wording:
 // https://github.com/rui314/chibicc/wiki/cpp.algo.pdf
 
-#include "chibicc.h"
+#include "opencc.h"
 
 typedef struct MacroParam MacroParam;
 struct MacroParam {
