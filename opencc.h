@@ -1,3 +1,4 @@
+#include <unordered_map>
 #define _POSIX_C_SOURCE 200809L
 #include <assert.h>
 #include <ctype.h>
@@ -5,18 +6,19 @@
 #include <glob.h>
 #include <libgen.h>
 #include <stdarg.h>
-#include <stdbool.h>
-#include <stdint.h>
-#include <stdio.h>
+#include <cstdint>
+#include <cstdio>
 #include <stdlib.h>
 #include <stdnoreturn.h>
-#include <string.h>
+#include <cstring>
 #include <strings.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
+#include <string>
+#include <vector>
 
 #define MAX(x, y) ((x) < (y) ? (y) : (x))
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
@@ -35,13 +37,19 @@ typedef struct Hideset Hideset;
 // strings.c
 //
 
+/*
 typedef struct {
   char **data;
   int capacity;
   int len;
 } StringArray;
+*/
 
-void strarray_push(StringArray *arr, char *s);
+using StringArray = std::vector<std::string>;
+
+inline void strarray_push(StringArray& arr, const std::string& s) {
+  arr.emplace_back(s);
+}
 char *format(char *fmt, ...) __attribute__((format(printf, 1, 2)));
 
 //
@@ -91,13 +99,13 @@ struct Token {
   Token *origin;    // If this is expanded from a macro, the original token
 };
 
-noreturn void error(char *fmt, ...) __attribute__((format(printf, 1, 2)));
-noreturn void error_at(char *loc, char *fmt, ...) __attribute__((format(printf, 2, 3)));
-noreturn void error_tok(Token *tok, char *fmt, ...) __attribute__((format(printf, 2, 3)));
+noreturn void error(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
+noreturn void error_at(char *loc, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
+noreturn void error_tok(Token *tok, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
 void warn_tok(Token *tok, char *fmt, ...) __attribute__((format(printf, 2, 3)));
-bool equal(Token *tok, char *op);
-Token *skip(Token *tok, char *op);
-bool consume(Token **rest, Token *tok, char *str);
+bool equal(Token *tok,const char *op);
+Token *skip(Token *tok, const char *op);
+bool consume(Token **rest, Token *tok, const char *str);
 void convert_pp_tokens(Token *tok);
 File **get_input_files(void);
 File *new_file(char *name, int file_no, char *contents);
@@ -181,8 +189,8 @@ typedef enum {
   ND_DIV,       // /
   ND_NEG,       // unary -
   ND_MOD,       // %
-  ND_BITAND,    // &
-  ND_BITOR,     // |
+  ND_bitand_,    // &
+  ND_bitor_,     // |
   ND_BITXOR,    // ^
   ND_SHL,       // <<
   ND_SHR,       // >>
@@ -298,7 +306,7 @@ Obj *parse(Token *tok);
 // type.c
 //
 
-typedef enum {
+typedef enum : uint8_t {
   TY_VOID,
   TY_BOOL,
   TY_CHAR,
@@ -425,24 +433,15 @@ int display_width(char *p, int len);
 // hashmap.c
 //
 
-typedef struct {
-  char *key;
-  int keylen;
-  void *val;
-} HashEntry;
 
-typedef struct {
-  HashEntry *buckets;
-  int capacity;
-  int used;
-} HashMap;
+extern std::unordered_map<std::string, void*> map;
 
-void *hashmap_get(HashMap *map, char *key);
-void *hashmap_get2(HashMap *map, char *key, int keylen);
-void hashmap_put(HashMap *map, char *key, void *val);
-void hashmap_put2(HashMap *map, char *key, int keylen, void *val);
-void hashmap_delete(HashMap *map, char *key);
-void hashmap_delete2(HashMap *map, char *key, int keylen);
+void *hashmap_get(const std::string& key);
+void *hashmap_get2(std::string key, int keylen);
+void hashmap_put(const std::string& key, void *val);
+void hashmap_put2(std::string key, int keylen, void *val);
+void hashmap_delete(std::string key);
+void hashmap_delete2(std::string key, int keylen);
 void hashmap_test(void);
 
 //

@@ -1,10 +1,12 @@
-CFLAGS=-std=c11 -g -fno-common -Wall -Wno-switch
+CFLAGS=-std=c++20 -g -ferror-limit=0 -fno-common -Wall -Wextra -Wno-switch
 
 SRCS=$(wildcard *.c)
 OBJS=$(SRCS:.c=.o)
 
 TEST_SRCS=$(wildcard test/*.c)
 TESTS=$(TEST_SRCS:.c=.exe)
+
+CC = g++
 
 # Stage 1
 

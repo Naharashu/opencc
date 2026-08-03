@@ -1,24 +1,41 @@
 #include "opencc.h"
 
-Type *ty_void = &(Type){TY_VOID, 1, 1};
-Type *ty_bool = &(Type){TY_BOOL, 1, 1};
+Type ty_void_obj = (Type){TY_VOID, 1, 1};
+Type ty_bool_obj = (Type){TY_BOOL, 1, 1};
 
-Type *ty_char = &(Type){TY_CHAR, 1, 1};
-Type *ty_short = &(Type){TY_SHORT, 2, 2};
-Type *ty_int = &(Type){TY_INT, 4, 4};
-Type *ty_long = &(Type){TY_LONG, 8, 8};
+Type ty_char_obj = (Type){TY_CHAR, 1, 1};
+Type ty_short_obj = (Type){TY_SHORT, 2, 2};
+Type ty_int_obj = (Type){TY_INT, 4, 4};
+Type ty_long_obj = (Type){TY_LONG, 8, 8};
 
-Type *ty_uchar = &(Type){TY_CHAR, 1, 1, true};
-Type *ty_ushort = &(Type){TY_SHORT, 2, 2, true};
-Type *ty_uint = &(Type){TY_INT, 4, 4, true};
-Type *ty_ulong = &(Type){TY_LONG, 8, 8, true};
+Type ty_uchar_obj = (Type){TY_CHAR, 1, 1, true};
+Type ty_ushort_obj = (Type){TY_SHORT, 2, 2, true};
+Type ty_uint_obj = (Type){TY_INT, 4, 4, true};
+Type ty_ulong_obj = (Type){TY_LONG, 8, 8, true};
 
-Type *ty_float = &(Type){TY_FLOAT, 4, 4};
-Type *ty_double = &(Type){TY_DOUBLE, 8, 8};
-Type *ty_ldouble = &(Type){TY_LDOUBLE, 16, 16};
+Type ty_float_obj = (Type){TY_FLOAT, 4, 4};
+Type ty_double_obj = (Type){TY_DOUBLE, 8, 8};
+Type ty_ldouble_obj = (Type){TY_LDOUBLE, 16, 16};
+
+Type *ty_void = &ty_void_obj;
+Type *ty_bool = &ty_bool_obj;
+
+Type *ty_char = &ty_char_obj;
+Type *ty_short = &ty_short_obj;
+Type *ty_int = &ty_int_obj;
+Type *ty_long = &ty_long_obj;
+
+Type *ty_uchar = &ty_uchar_obj;
+Type *ty_ushort = &ty_ushort_obj;
+Type *ty_uint = &ty_uint_obj;
+Type *ty_ulong = &ty_ulong_obj;
+
+Type *ty_float = &ty_float_obj;
+Type *ty_double = &ty_double_obj;
+Type *ty_ldouble = &ty_ldouble_obj;
 
 static Type *new_type(TypeKind kind, int size, int align) {
-  Type *ty = calloc(1, sizeof(Type));
+  Type *ty = (Type*)calloc(1, sizeof(Type));
   ty->kind = kind;
   ty->size = size;
   ty->align = align;
@@ -88,7 +105,7 @@ bool is_compatible(Type *t1, Type *t2) {
 }
 
 Type *copy_type(Type *ty) {
-  Type *ret = calloc(1, sizeof(Type));
+  Type *ret = (Type*)calloc(1, sizeof(Type));
   *ret = *ty;
   ret->origin = ty;
   return ret;
@@ -199,8 +216,8 @@ void add_type(Node *node) {
   case ND_MUL:
   case ND_DIV:
   case ND_MOD:
-  case ND_BITAND:
-  case ND_BITOR:
+  case ND_bitand_:
+  case ND_bitor_:
   case ND_BITXOR:
     usual_arith_conv(&node->lhs, &node->rhs);
     node->ty = node->lhs->ty;

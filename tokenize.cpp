@@ -1,4 +1,6 @@
 #include "opencc.h"
+#include <cstdint>
+#include <string>
 
 // Input file
 static File *current_file;
@@ -13,7 +15,7 @@ static bool at_bol;
 static bool has_space;
 
 // Reports an error and exit.
-void error(char *fmt, ...) {
+void error(const char *fmt, ...) {
   va_list ap;
   va_start(ap, fmt);
   vfprintf(stderr, fmt, ap);
@@ -25,7 +27,7 @@ void error(char *fmt, ...) {
 //
 // foo.c:10: x = y + 1;
 //               ^ <error message here>
-static void verror_at(char *filename, char *input, int line_no,
+static void verror_at(const char *filename, char *input, int line_no,
                       char *loc, char *fmt, va_list ap) {
   // Find a line containing `loc`.
   char *line = loc;
@@ -49,7 +51,7 @@ static void verror_at(char *filename, char *input, int line_no,
   fprintf(stderr, "\n");
 }
 
-void error_at(char *loc, char *fmt, ...) {
+void error_at(char *loc, const char *fmt, ...) {
   int line_no = 1;
   for (char *p = current_file->contents; p < loc; p++)
     if (*p == '\n')
@@ -57,14 +59,14 @@ void error_at(char *loc, char *fmt, ...) {
 
   va_list ap;
   va_start(ap, fmt);
-  verror_at(current_file->name, current_file->contents, line_no, loc, fmt, ap);
+  verror_at(current_file->name, current_file->contents, line_no, loc, const_cast<char*>(fmt), ap);
   exit(1);
 }
 
-void error_tok(Token *tok, char *fmt, ...) {
+void error_tok(Token *tok, const char *fmt, ...) {
   va_list ap;
   va_start(ap, fmt);
-  verror_at(tok->file->name, tok->file->contents, tok->line_no, tok->loc, fmt, ap);
+  verror_at(tok->file->name, tok->file->contents, tok->line_no, tok->loc, const_cast<char*>(fmt), ap);
   exit(1);
 }
 
@@ -76,18 +78,18 @@ void warn_tok(Token *tok, char *fmt, ...) {
 }
 
 // Consumes the current token if it matches `op`.
-bool equal(Token *tok, char *op) {
+bool equal(Token *tok, const char *op) {
   return memcmp(tok->loc, op, tok->len) == 0 && op[tok->len] == '\0';
 }
 
 // Ensure that the current token is `op`.
-Token *skip(Token *tok, char *op) {
+Token *skip(Token *tok, const char *op) {
   if (!equal(tok, op))
     error_tok(tok, "expected '%s'", op);
   return tok->next;
 }
 
-bool consume(Token **rest, Token *tok, char *str) {
+bool consume(Token **rest, Token *tok, const char *str) {
   if (equal(tok, str)) {
     *rest = tok->next;
     return true;
@@ -98,7 +100,7 @@ bool consume(Token **rest, Token *tok, char *str) {
 
 // Create a new token.
 static Token *new_token(TokenKind kind, char *start, char *end) {
-  Token *tok = calloc(1, sizeof(Token));
+  Token *tok = (Token*)calloc(1, sizeof(Token));
   tok->kind = kind;
   tok->loc = start;
   tok->len = end - start;
@@ -111,7 +113,7 @@ static Token *new_token(TokenKind kind, char *start, char *end) {
   return tok;
 }
 
-static bool startswith(char *p, char *q) {
+static bool startswith(const char *p, const char *q) {
   return strncmp(p, q, strlen(q)) == 0;
 }
 
@@ -142,7 +144,7 @@ static int from_hex(char c) {
 
 // Read a punctuator token from p and returns its length.
 static int read_punct(char *p) {
-  static char *kw[] = {
+  static const char *kw[] = {
     "<<=", ">>=", "...", "==", "!=", "<=", ">=", "->", "+=",
     "-=", "*=", "/=", "++", "--", "%=", "&=", "|=", "^=", "&&",
     "||", "<<", ">>", "##",
@@ -159,7 +161,7 @@ static bool is_keyword(Token *tok) {
   static HashMap map;
 
   if (map.capacity == 0) {
-    static char *kw[] = {
+    static std::string kw[] = {
       "return", "if", "else", "for", "while", "int", "sizeof", "char",
       "struct", "union", "short", "long", "void", "typedef", "_Bool",
       "enum", "static", "goto", "break", "continue", "switch", "case",
@@ -171,7 +173,7 @@ static bool is_keyword(Token *tok) {
     };
 
     for (int i = 0; i < sizeof(kw) / sizeof(*kw); i++)
-      hashmap_put(&map, kw[i], (void *)1);
+      hashmap_put(&map, kw[i].c_str(), (void *)1);
   }
 
   return hashmap_get2(&map, tok->loc, tok->len);
@@ -244,7 +246,7 @@ static char *string_literal_end(char *p) {
 
 static Token *read_string_literal(char *start, char *quote) {
   char *end = string_literal_end(quote + 1);
-  char *buf = calloc(1, end - quote);
+  char *buf = (char*)calloc(1, end - quote);
   int len = 0;
 
   for (char *p = quote + 1; p < end;) {
@@ -269,7 +271,7 @@ static Token *read_string_literal(char *start, char *quote) {
 // is called a "surrogate pair".
 static Token *read_utf16_string_literal(char *start, char *quote) {
   char *end = string_literal_end(quote + 1);
-  uint16_t *buf = calloc(2, end - start);
+  uint16_t *buf = (uint16_t*)calloc(2, end - start);
   int len = 0;
 
   for (char *p = quote + 1; p < end;) {
@@ -302,7 +304,7 @@ static Token *read_utf16_string_literal(char *start, char *quote) {
 // encoded in 4 bytes.
 static Token *read_utf32_string_literal(char *start, char *quote, Type *ty) {
   char *end = string_literal_end(quote + 1);
-  uint32_t *buf = calloc(4, end - quote);
+  uint32_t *buf = (uint32_t*)calloc(4, end - quote);
   int len = 0;
 
   for (char *p = quote + 1; p < end;) {
@@ -679,7 +681,7 @@ File **get_input_files(void) {
 }
 
 File *new_file(char *name, int file_no, char *contents) {
-  File *file = calloc(1, sizeof(File));
+  File *file = (File*)calloc(1, sizeof(File));
   file->name = name;
   file->display_name = name;
   file->file_no = file_no;
@@ -796,7 +798,7 @@ Token *tokenize_file(char *path) {
   File *file = new_file(path, file_no + 1, p);
 
   // Save the filename for assembler .file directive.
-  input_files = realloc(input_files, sizeof(char *) * (file_no + 2));
+  input_files = (File**)realloc(input_files, sizeof(char *) * (file_no + 2));
   input_files[file_no] = file;
   input_files[file_no + 1] = NULL;
   file_no++;
