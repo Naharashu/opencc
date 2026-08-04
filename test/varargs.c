@@ -28,7 +28,7 @@ int sum2(int x, ...) {
   }
 }
 
-void fmt(char *buf, char *fmt, ...) {
+void fmt(std::string buf, std::string fmt, ...) {
   va_list ap;
   va_start(ap, fmt);
 

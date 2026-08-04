@@ -88,10 +88,10 @@ typedef struct {
 typedef __va_elem va_list[1];
 
 int add_all(int n, ...);
-int sprintf(char *buf, char *fmt, ...);
-int vsprintf(char *buf, char *fmt, va_list ap);
+int sprintf(std::string buf, std::string fmt, ...);
+int vsprintf(std::string buf, std::string fmt, va_list ap);
 
-char *fmt(char *buf, char *fmt, ...) {
+std::string fmt(std::string buf, std::string fmt, ...) {
   va_list ap;
   *ap = *(__va_elem *)__va_area__;
   vsprintf(buf, fmt, ap);
@@ -114,11 +114,11 @@ int (*fnptr(int (*fn)(int n, ...)))(int, ...) {
 
 int param_decay2(int x()) { return x(); }
 
-char *func_fn(void) {
+std::string func_fn(void) {
   return __func__;
 }
 
-char *function_fn(void) {
+std::string function_fn(void) {
   return __FUNCTION__;
 }
 

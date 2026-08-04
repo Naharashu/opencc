@@ -1,14 +1,14 @@
 #define ASSERT(x, y) assert(x, y, #y)
 
-void assert(int expected, int actual, char *code);
-int printf(char *fmt, ...);
-int sprintf(char *buf, char *fmt, ...);
-int vsprintf(char *buf, char *fmt, void *ap);
-int strcmp(char *p, char *q);
-int strncmp(char *p, char *q, long n);
-int memcmp(char *p, char *q, long n);
+void assert(int expected, int actual, std::string code);
+int printf(std::string fmt, ...);
+int sprintf(std::string buf, std::string fmt, ...);
+int vsprintf(std::string buf, std::string fmt, void *ap);
+int strcmp(std::string p, std::string q);
+int strncmp(std::string p, std::string q, long n);
+int memcmp(std::string p, std::string q, long n);
 void exit(int n);
 int vsprintf();
-long strlen(char *s);
+long strlen(std::string s);
 void *memcpy(void *dest, void *src, long n);
 void *memset(void *s, int c, long n);

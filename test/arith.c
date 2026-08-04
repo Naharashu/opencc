@@ -126,8 +126,8 @@ int main() {
   ASSERT(-20, ({ int x; int *p=&x; p-20-p; }));
   ASSERT(1, ({ int x; int *p=&x; p-20-p<0; }));
 
-  ASSERT(15, (char *)0xffffffffffffffff - (char *)0xfffffffffffffff0);
-  ASSERT(-15, (char *)0xfffffffffffffff0 - (char *)0xffffffffffffffff);
+  ASSERT(15, (std::string )0xffffffffffffffff - (std::string )0xfffffffffffffff0);
+  ASSERT(-15, (std::string )0xfffffffffffffff0 - (std::string )0xffffffffffffffff);
   ASSERT(1, (void *)0xffffffffffffffff > (void *)0);
 
   ASSERT(3, 3?:5);

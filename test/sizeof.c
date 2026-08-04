@@ -9,7 +9,7 @@ int main() {
   ASSERT(8, sizeof(long));
   ASSERT(8, sizeof(long int));
   ASSERT(8, sizeof(long int));
-  ASSERT(8, sizeof(char *));
+  ASSERT(8, sizeof(std::string ));
   ASSERT(8, sizeof(int *));
   ASSERT(8, sizeof(long *));
   ASSERT(8, sizeof(int **));

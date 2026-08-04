@@ -15,7 +15,7 @@ static bool at_bol;
 static bool has_space;
 
 // Reports an error and exit.
-void error(const char *fmt, ...) {
+void error(const std::string fmt, ...) {
   va_list ap;
   va_start(ap, fmt);
   vfprintf(stderr, fmt, ap);
@@ -27,14 +27,14 @@ void error(const char *fmt, ...) {
 //
 // foo.c:10: x = y + 1;
 //               ^ <error message here>
-static void verror_at(const char *filename, char *input, int line_no,
-                      char *loc, char *fmt, va_list ap) {
+static void verror_at(const std::string filename, std::string input, int line_no,
+                      std::string loc, std::string fmt, va_list ap) {
   // Find a line containing `loc`.
-  char *line = loc;
+  std::string line = loc;
   while (input < line && line[-1] != '\n')
     line--;
 
-  char *end = loc;
+  std::string end = loc;
   while (*end && *end != '\n')
     end++;
 
@@ -51,9 +51,9 @@ static void verror_at(const char *filename, char *input, int line_no,
   fprintf(stderr, "\n");
 }
 
-void error_at(char *loc, const char *fmt, ...) {
+void error_at(std::string loc, const std::string fmt, ...) {
   int line_no = 1;
-  for (char *p = current_file->contents; p < loc; p++)
+  for (std::string p = current_file->contents; p < loc; p++)
     if (*p == '\n')
       line_no++;
 
@@ -63,14 +63,14 @@ void error_at(char *loc, const char *fmt, ...) {
   exit(1);
 }
 
-void error_tok(Token *tok, const char *fmt, ...) {
+void error_tok(Token *tok, const std::string fmt, ...) {
   va_list ap;
   va_start(ap, fmt);
   verror_at(tok->file->name, tok->file->contents, tok->line_no, tok->loc, const_cast<char*>(fmt), ap);
   exit(1);
 }
 
-void warn_tok(Token *tok, char *fmt, ...) {
+void warn_tok(Token *tok, std::string fmt, ...) {
   va_list ap;
   va_start(ap, fmt);
   verror_at(tok->file->name, tok->file->contents, tok->line_no, tok->loc, fmt, ap);
@@ -78,18 +78,18 @@ void warn_tok(Token *tok, char *fmt, ...) {
 }
 
 // Consumes the current token if it matches `op`.
-bool equal(Token *tok, const char *op) {
+bool equal(Token *tok, const std::string op) {
   return memcmp(tok->loc, op, tok->len) == 0 && op[tok->len] == '\0';
 }
 
 // Ensure that the current token is `op`.
-Token *skip(Token *tok, const char *op) {
+Token *skip(Token *tok, const std::string op) {
   if (!equal(tok, op))
     error_tok(tok, "expected '%s'", op);
   return tok->next;
 }
 
-bool consume(Token **rest, Token *tok, const char *str) {
+bool consume(Token **rest, Token *tok, const std::string str) {
   if (equal(tok, str)) {
     *rest = tok->next;
     return true;
@@ -99,7 +99,7 @@ bool consume(Token **rest, Token *tok, const char *str) {
 }
 
 // Create a new token.
-static Token *new_token(TokenKind kind, char *start, char *end) {
+static Token *new_token(TokenKind kind, std::string start, std::string end) {
   Token *tok = (Token*)calloc(1, sizeof(Token));
   tok->kind = kind;
   tok->loc = start;
@@ -113,20 +113,20 @@ static Token *new_token(TokenKind kind, char *start, char *end) {
   return tok;
 }
 
-static bool startswith(const char *p, const char *q) {
+static bool startswith(const std::string p, const std::string q) {
   return strncmp(p, q, strlen(q)) == 0;
 }
 
 // Read an identifier and returns the length of it.
 // If p does not point to a valid identifier, 0 is returned.
-static int read_ident(char *start) {
-  char *p = start;
+static int read_ident(std::string start) {
+  std::string p = start;
   uint32_t c = decode_utf8(&p, p);
   if (!is_ident1(c))
     return 0;
 
   for (;;) {
-    char *q;
+    std::string q;
     c = decode_utf8(&q, p);
     if (!is_ident2(c))
       return p - start;
@@ -143,8 +143,8 @@ static int from_hex(char c) {
 }
 
 // Read a punctuator token from p and returns its length.
-static int read_punct(char *p) {
-  static const char *kw[] = {
+static int read_punct(std::string p) {
+  static const std::string kw[] = {
     "<<=", ">>=", "...", "==", "!=", "<=", ">=", "->", "+=",
     "-=", "*=", "/=", "++", "--", "%=", "&=", "|=", "^=", "&&",
     "||", "<<", ">>", "##",
@@ -179,7 +179,7 @@ static bool is_keyword(Token *tok) {
   return hashmap_get2(&map, tok->loc, tok->len);
 }
 
-static int read_escaped_char(char **new_pos, char *p) {
+static int read_escaped_char(std::string *new_pos, std::string p) {
   if ('0' <= *p && *p <= '7') {
     // Read an octal number.
     int c = *p++ - '0';
@@ -233,8 +233,8 @@ static int read_escaped_char(char **new_pos, char *p) {
 }
 
 // Find a closing double-quote.
-static char *string_literal_end(char *p) {
-  char *start = p;
+static std::string string_literal_end(std::string p) {
+  std::string start = p;
   for (; *p != '"'; p++) {
     if (*p == '\n' || *p == '\0')
       error_at(start, "unclosed string literal");
@@ -244,12 +244,12 @@ static char *string_literal_end(char *p) {
   return p;
 }
 
-static Token *read_string_literal(char *start, char *quote) {
-  char *end = string_literal_end(quote + 1);
-  char *buf = (char*)calloc(1, end - quote);
+static Token *read_string_literal(std::string start, std::string quote) {
+  std::string end = string_literal_end(quote + 1);
+  std::string buf = (char*)calloc(1, end - quote);
   int len = 0;
 
-  for (char *p = quote + 1; p < end;) {
+  for (std::string p = quote + 1; p < end;) {
     if (*p == '\\')
       buf[len++] = read_escaped_char(&p, p + 1);
     else
@@ -269,12 +269,12 @@ static Token *read_string_literal(char *start, char *quote) {
 // equal to or larger than that are encoded in 4 bytes. Each 2 bytes
 // in the 4 byte sequence is called "surrogate", and a 4 byte sequence
 // is called a "surrogate pair".
-static Token *read_utf16_string_literal(char *start, char *quote) {
-  char *end = string_literal_end(quote + 1);
+static Token *read_utf16_string_literal(std::string start, std::string quote) {
+  std::string end = string_literal_end(quote + 1);
   uint16_t *buf = (uint16_t*)calloc(2, end - start);
   int len = 0;
 
-  for (char *p = quote + 1; p < end;) {
+  for (std::string p = quote + 1; p < end;) {
     if (*p == '\\') {
       buf[len++] = read_escaped_char(&p, p + 1);
       continue;
@@ -294,7 +294,7 @@ static Token *read_utf16_string_literal(char *start, char *quote) {
 
   Token *tok = new_token(TK_STR, start, end + 1);
   tok->ty = array_of(ty_ushort, len + 1);
-  tok->str = (char *)buf;
+  tok->str = (std::string )buf;
   return tok;
 }
 
@@ -302,12 +302,12 @@ static Token *read_utf16_string_literal(char *start, char *quote) {
 //
 // UTF-32 is a fixed-width encoding for Unicode. Each code point is
 // encoded in 4 bytes.
-static Token *read_utf32_string_literal(char *start, char *quote, Type *ty) {
-  char *end = string_literal_end(quote + 1);
+static Token *read_utf32_string_literal(std::string start, std::string quote, Type *ty) {
+  std::string end = string_literal_end(quote + 1);
   uint32_t *buf = (uint32_t*)calloc(4, end - quote);
   int len = 0;
 
-  for (char *p = quote + 1; p < end;) {
+  for (std::string p = quote + 1; p < end;) {
     if (*p == '\\')
       buf[len++] = read_escaped_char(&p, p + 1);
     else
@@ -316,12 +316,12 @@ static Token *read_utf32_string_literal(char *start, char *quote, Type *ty) {
 
   Token *tok = new_token(TK_STR, start, end + 1);
   tok->ty = array_of(ty, len + 1);
-  tok->str = (char *)buf;
+  tok->str = (std::string )buf;
   return tok;
 }
 
-static Token *read_char_literal(char *start, char *quote, Type *ty) {
-  char *p = quote + 1;
+static Token *read_char_literal(std::string start, std::string quote, Type *ty) {
+  std::string p = quote + 1;
   if (*p == '\0')
     error_at(start, "unclosed char literal");
 
@@ -331,7 +331,7 @@ static Token *read_char_literal(char *start, char *quote, Type *ty) {
   else
     c = decode_utf8(&p, p);
 
-  char *end = strchr(p, '\'');
+  std::string end = strchr(p, '\'');
   if (!end)
     error_at(p, "unclosed char literal");
 
@@ -342,7 +342,7 @@ static Token *read_char_literal(char *start, char *quote, Type *ty) {
 }
 
 static bool convert_pp_int(Token *tok) {
-  char *p = tok->loc;
+  std::string p = tok->loc;
 
   // Read a binary, octal, decimal or hexadecimal number.
   int base = 10;
@@ -432,7 +432,7 @@ static void convert_pp_number(Token *tok) {
     return;
 
   // If it's not an integer, it must be a floating point constant.
-  char *end;
+  std::string end;
   long double val = strtold(tok->loc, &end);
 
   Type *ty;
@@ -465,7 +465,7 @@ void convert_pp_tokens(Token *tok) {
 
 // Initialize line info for all tokens.
 static void add_line_numbers(Token *tok) {
-  char *p = current_file->contents;
+  std::string p = current_file->contents;
   int n = 1;
 
   do {
@@ -492,7 +492,7 @@ Token *tokenize_string_literal(Token *tok, Type *basety) {
 Token *tokenize(File *file) {
   current_file = file;
 
-  char *p = file->contents;
+  std::string p = file->contents;
   Token head = {};
   Token *cur = &head;
 
@@ -511,7 +511,7 @@ Token *tokenize(File *file) {
 
     // Skip block comments.
     if (startswith(p, "/*")) {
-      char *q = strstr(p + 2, "*/");
+      std::string q = strstr(p + 2, "*/");
       if (!q)
         error_at(p, "unclosed block comment");
       p = q + 2;
@@ -536,7 +536,7 @@ Token *tokenize(File *file) {
 
     // Numeric literal
     if (isdigit(*p) || (*p == '.' && isdigit(p[1]))) {
-      char *q = p++;
+      std::string q = p++;
       for (;;) {
         if (p[0] && p[1] && strchr("eEpP", p[0]) && strchr("+-", p[1]))
           p += 2;
@@ -639,7 +639,7 @@ Token *tokenize(File *file) {
 }
 
 // Returns the contents of a given file.
-static char *read_file(char *path) {
+static std::string read_file(std::string path) {
   FILE *fp;
 
   if (strcmp(path, "-") == 0) {
@@ -651,7 +651,7 @@ static char *read_file(char *path) {
       return NULL;
   }
 
-  char *buf;
+  std::string buf;
   size_t buflen;
   FILE *out = open_memstream(&buf, &buflen);
 
@@ -680,7 +680,7 @@ File **get_input_files(void) {
   return input_files;
 }
 
-File *new_file(char *name, int file_no, char *contents) {
+File *new_file(std::string name, int file_no, std::string contents) {
   File *file = (File*)calloc(1, sizeof(File));
   file->name = name;
   file->display_name = name;
@@ -690,7 +690,7 @@ File *new_file(char *name, int file_no, char *contents) {
 }
 
 // Replaces \r or \r\n with \n.
-static void canonicalize_newline(char *p) {
+static void canonicalize_newline(std::string p) {
   int i = 0, j = 0;
 
   while (p[i]) {
@@ -709,7 +709,7 @@ static void canonicalize_newline(char *p) {
 }
 
 // Removes backslashes followed by a newline.
-static void remove_backslash_newline(char *p) {
+static void remove_backslash_newline(std::string p) {
   int i = 0, j = 0;
 
   // We want to keep the number of newline characters so that
@@ -735,7 +735,7 @@ static void remove_backslash_newline(char *p) {
   p[j] = '\0';
 }
 
-static uint32_t read_universal_char(char *p, int len) {
+static uint32_t read_universal_char(std::string p, int len) {
   uint32_t c = 0;
   for (int i = 0; i < len; i++) {
     if (!isxdigit(p[i]))
@@ -746,8 +746,8 @@ static uint32_t read_universal_char(char *p, int len) {
 }
 
 // Replace \u or \U escape sequences with corresponding UTF-8 bytes.
-static void convert_universal_chars(char *p) {
-  char *q = p;
+static void convert_universal_chars(std::string p) {
+  std::string q = p;
 
   while (*p) {
     if (startswith(p, "\\u")) {
@@ -777,8 +777,8 @@ static void convert_universal_chars(char *p) {
   *q = '\0';
 }
 
-Token *tokenize_file(char *path) {
-  char *p = read_file(path);
+Token *tokenize_file(std::string path) {
+  std::string p = read_file(path);
   if (!p)
     return NULL;
 
@@ -798,7 +798,7 @@ Token *tokenize_file(char *path) {
   File *file = new_file(path, file_no + 1, p);
 
   // Save the filename for assembler .file directive.
-  input_files = (File**)realloc(input_files, sizeof(char *) * (file_no + 2));
+  input_files = (File**)realloc(input_files, sizeof(std::string ) * (file_no + 2));
   input_files[file_no] = file;
   input_files[file_no + 1] = NULL;
   file_no++;

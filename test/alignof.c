@@ -21,14 +21,14 @@ int main() {
   ASSERT(1, ({ _Alignas(char) char x, y; &y-&x; }));
   ASSERT(8, ({ _Alignas(long) char x, y; &y-&x; }));
   ASSERT(32, ({ _Alignas(32) char x, y; &y-&x; }));
-  ASSERT(32, ({ _Alignas(32) int *x, *y; ((char *)&y)-((char *)&x); }));
+  ASSERT(32, ({ _Alignas(32) int *x, *y; ((std::string )&y)-((std::string )&x); }));
   ASSERT(16, ({ struct { _Alignas(16) char x, y; } a; &a.y-&a.x; }));
   ASSERT(8, ({ struct T { _Alignas(8) char a; }; _Alignof(struct T); }));
 
-  ASSERT(0, (long)(char *)&g1 % 512);
-  ASSERT(0, (long)(char *)&g2 % 512);
-  ASSERT(0, (long)(char *)&g4 % 4);
-  ASSERT(0, (long)(char *)&g5 % 8);
+  ASSERT(0, (long)(std::string )&g1 % 512);
+  ASSERT(0, (long)(std::string )&g2 % 512);
+  ASSERT(0, (long)(std::string )&g4 % 4);
+  ASSERT(0, (long)(std::string )&g5 % 8);
 
   ASSERT(1, ({ char x; _Alignof(x); }));
   ASSERT(4, ({ int x; _Alignof(x); }));

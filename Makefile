@@ -1,10 +1,10 @@
 CFLAGS=-std=c++20 -g -ferror-limit=0 -fno-common -Wall -Wextra -Wno-switch
 
-SRCS=$(wildcard *.c)
-OBJS=$(SRCS:.c=.o)
+SRCS=$(wildcard *.cpp)
+OBJS=$(SRCS:.cpp=.o)
 
-TEST_SRCS=$(wildcard test/*.c)
-TESTS=$(TEST_SRCS:.c=.exe)
+TEST_SRCS=$(wildcard test/*.cpp)
+TESTS=$(TEST_SRCS:.cpp=.exe)
 
 CC = g++
 
@@ -15,8 +15,8 @@ opencc: $(OBJS)
 
 $(OBJS): opencc.h
 
-test/%.exe: opencc test/%.c
-	./opencc -Iinclude -Itest -c -o test/$*.o test/$*.c
+test/%.exe: opencc test/%.cpp
+	./opencc -Iinclude -Itest -c -o test/$*.o test/$*.cpp
 	$(CC) -pthread -o $@ test/$*.o -xc test/common
 
 test: $(TESTS)
@@ -30,13 +30,13 @@ test-all: test test-stage2
 stage2/opencc: $(OBJS:%=stage2/%)
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
-stage2/%.o: opencc %.c
+stage2/%.o: opencc %.cpp
 	mkdir -p stage2/test
-	./opencc -c -o $(@D)/$*.o $*.c
+	./opencc -c -o $(@D)/$*.o $*.cpp
 
-stage2/test/%.exe: stage2/opencc test/%.c
+stage2/test/%.exe: stage2/opencc test/%.cpp
 	mkdir -p stage2/test
-	./stage2/opencc -Iinclude -Itest -c -o stage2/test/$*.o test/$*.c
+	./stage2/opencc -Iinclude -Itest -c -o stage2/test/$*.o test/$*.cpp
 	$(CC) -pthread -o $@ stage2/test/$*.o -xc test/common
 
 test-stage2: $(TESTS:test/%=stage2/test/%)

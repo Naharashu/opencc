@@ -1,7 +1,7 @@
 #include "opencc.h"
 
 // Encode a given character in UTF-8.
-int encode_utf8(char *buf, uint32_t c) {
+int encode_utf8(std::string buf, uint32_t c) {
   if (c <= 0x7F) {
     buf[0] = c;
     return 1;
@@ -34,13 +34,13 @@ int encode_utf8(char *buf, uint32_t c) {
 // encoded in one to four bytes. One byte UTF-8 code points are
 // identical to ASCII. Non-ASCII characters are encoded using more
 // than one byte.
-uint32_t decode_utf8(char **new_pos, char *p) {
+uint32_t decode_utf8(std::string *new_pos, std::string p) {
   if ((unsigned char)*p < 128) {
     *new_pos = p + 1;
     return *p;
   }
 
-  char *start = p;
+  std::string start = p;
   int len;
   uint32_t c;
 
@@ -178,8 +178,8 @@ static int char_width(uint32_t c) {
 
 // Returns the number of columns needed to display a given
 // string in a fixed-width font.
-int display_width(char *p, int len) {
-  char *start = p;
+int display_width(std::string p, int len) {
+  std::string start = p;
   int w = 0;
   while (p - start < len) {
     uint32_t c = decode_utf8(&p, p);

@@ -7,17 +7,17 @@
 
 static FILE *output_file;
 static int depth;
-static char *argreg8[] = {"%dil", "%sil", "%dl", "%cl", "%r8b", "%r9b"};
-static char *argreg16[] = {"%di", "%si", "%dx", "%cx", "%r8w", "%r9w"};
-static char *argreg32[] = {"%edi", "%esi", "%edx", "%ecx", "%r8d", "%r9d"};
-static char *argreg64[] = {"%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9"};
+static std::string argreg8[] = {"%dil", "%sil", "%dl", "%cl", "%r8b", "%r9b"};
+static std::string argreg16[] = {"%di", "%si", "%dx", "%cx", "%r8w", "%r9w"};
+static std::string argreg32[] = {"%edi", "%esi", "%edx", "%ecx", "%r8d", "%r9d"};
+static std::string argreg64[] = {"%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9"};
 static Obj *current_fn;
 
 static void gen_expr(Node *node);
 static void gen_stmt(Node *node);
 
 __attribute__((format(printf, 1, 2)))
-static void println(const char *fmt, ...) {
+static void println(const std::string fmt, ...) {
   va_list ap;
   va_start(ap, fmt);
   vfprintf(output_file, fmt, ap);
@@ -35,7 +35,7 @@ static void push(void) {
   depth++;
 }
 
-static void pop(char *arg) {
+static void pop(std::string arg) {
   println("  pop %s", arg);
   depth--;
 }
@@ -58,7 +58,7 @@ int align_to(int n, int align) {
   return (n + align - 1) / align * align;
 }
 
-static char *reg_dx(int sz) {
+static std::string reg_dx(int sz) {
   switch (sz) {
   case 1: return "%dl";
   case 2: return "%dx";
@@ -68,7 +68,7 @@ static char *reg_dx(int sz) {
   unreachable();
 }
 
-static char *reg_ax(int sz) {
+static std::string reg_ax(int sz) {
   switch (sz) {
   case 1: return "%al";
   case 2: return "%ax";
@@ -210,7 +210,7 @@ static void load(Type *ty) {
     return;
   }
 
-  const char *insn = ty->is_unsigned ? "movz" : "movs";
+  const std::string insn = ty->is_unsigned ? "movz" : "movs";
 
   // When we load a char or a short value to a register, we always
   // extend them to the size of int, so we can assume the lower half of
@@ -372,7 +372,7 @@ static char f80u64[] = FROM_F80_1 "fistpq" FROM_F80_2 "mov -24(%rsp), %rax";
 static char f80f32[] = "fstps -8(%rsp); movss -8(%rsp), %xmm0";
 static char f80f64[] = "fstpl -8(%rsp); movsd -8(%rsp), %xmm0";
 
-static char *cast_table[][11] = {
+static std::string cast_table[][11] = {
   // i8   i16     i32     i64     u8     u16     u32     u64     f32     f64     f80
   {NULL,  NULL,   NULL,   i32i64, i32u8, i32u16, NULL,   i32i64, i32f32, i32f64, i32f80}, // i8
   {i32i8, NULL,   NULL,   i32i64, i32u8, i32u16, NULL,   i32i64, i32f32, i32f64, i32f80}, // i16
@@ -599,8 +599,8 @@ static void copy_ret_buffer(Obj *var) {
       else
         println("  movsd %%xmm%d, %d(%%rbp)", fp, var->offset + 8);
     } else {
-      const char *reg1 = (gp == 0) ? "%al" : "%dl";
-      const char *reg2 = (gp == 0) ? "%rax" : "%rdx";
+      const std::string reg1 = (gp == 0) ? "%al" : "%dl";
+      const std::string reg2 = (gp == 0) ? "%rax" : "%rdx";
       for (int i = 8; i < MIN(16, ty->size); i++) {
         println("  mov %s, %d(%%rbp)", reg1, var->offset + i);
         println("  shr $8, %s", reg2);
@@ -639,8 +639,8 @@ static void copy_struct_reg(void) {
       else
         println("  movsd 8(%%rdi), %%xmm%d", fp);
     } else {
-      const char *reg1 = (gp == 0) ? "%al" : "%dl";
-      const char *reg2 = (gp == 0) ? "%rax" : "%rdx";
+      const std::string reg1 = (gp == 0) ? "%al" : "%dl";
+      const std::string reg2 = (gp == 0) ? "%rax" : "%rdx";
       println("  mov $0, %s", reg2);
       for (int i = MIN(16, ty->size) - 1; i >= 8; i--) {
         println("  shl $8, %s", reg2);
@@ -1013,7 +1013,7 @@ static void gen_expr(Node *node) {
     gen_expr(node->lhs);
     popf(1);
 
-    const char *sz = (node->lhs->ty->kind == TY_FLOAT) ? "ss" : "sd";
+    const std::string sz = (node->lhs->ty->kind == TY_FLOAT) ? "ss" : "sd";
 
     switch (node->kind) {
     case ND_ADD:
@@ -1101,7 +1101,7 @@ static void gen_expr(Node *node) {
   gen_expr(node->lhs);
   pop("%rdi");
 
-  char *ax, *di, *dx;
+  std::string ax, *di, *dx;
 
   if (node->lhs->ty->kind == TY_LONG || node->lhs->ty->base) {
     ax = "%rax";
@@ -1238,8 +1238,8 @@ static void gen_stmt(Node *node) {
     gen_expr(node->cond);
 
     for (Node *n = node->case_next; n; n = n->case_next) {
-      const char *ax = (node->cond->ty->size == 8) ? "%rax" : "%eax";
-      const char *di = (node->cond->ty->size == 8) ? "%rdi" : "%edi";
+      const std::string ax = (node->cond->ty->size == 8) ? "%rax" : "%eax";
+      const std::string di = (node->cond->ty->size == 8) ? "%rdi" : "%edi";
 
       if (n->begin == n->end) {
         println("  cmp $%ld, %s", n->begin, ax);

@@ -230,7 +230,7 @@ void add_type(Node *node) {
   }
   case ND_ASSIGN:
     if (node->lhs->ty->kind == TY_ARRAY)
-      error_tok(node->lhs->tok, "not an lvalue");
+      error_tok(*node->lhs->tok, "not an lvalue");
     if (node->lhs->ty->kind != TY_STRUCT)
       node->rhs = new_cast(node->rhs, node->lhs->ty);
     node->ty = node->lhs->ty;
@@ -283,9 +283,9 @@ void add_type(Node *node) {
   }
   case ND_DEREF:
     if (!node->lhs->ty->base)
-      error_tok(node->tok, "invalid pointer dereference");
+      error_tok(*node->tok, "invalid pointer dereference");
     if (node->lhs->ty->base->kind == TY_VOID)
-      error_tok(node->tok, "dereferencing a void pointer");
+      error_tok(*node->tok, "dereferencing a void pointer");
 
     node->ty = node->lhs->ty->base;
     return;
@@ -299,7 +299,7 @@ void add_type(Node *node) {
         return;
       }
     }
-    error_tok(node->tok, "statement expression returning void is not supported");
+    error_tok(*node->tok, "statement expression returning void is not supported");
     return;
   case ND_LABEL_VAL:
     node->ty = pointer_to(ty_void);
@@ -311,13 +311,13 @@ void add_type(Node *node) {
     node->ty = ty_bool;
 
     if (node->cas_addr->ty->kind != TY_PTR)
-      error_tok(node->cas_addr->tok, "pointer expected");
+      error_tok(*node->cas_addr->tok, "pointer expected");
     if (node->cas_old->ty->kind != TY_PTR)
-      error_tok(node->cas_old->tok, "pointer expected");
+      error_tok(*node->cas_old->tok, "pointer expected");
     return;
   case ND_EXCH:
     if (node->lhs->ty->kind != TY_PTR)
-      error_tok(node->cas_addr->tok, "pointer expected");
+      error_tok(*node->cas_addr->tok, "pointer expected");
     node->ty = node->lhs->ty->base;
     return;
   }

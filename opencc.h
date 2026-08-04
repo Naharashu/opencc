@@ -1,24 +1,22 @@
-#include <unordered_map>
-#define _POSIX_C_SOURCE 200809L
-#include <assert.h>
-#include <ctype.h>
-#include <errno.h>
+#include <cctype>
+#include <cerrno>
 #include <glob.h>
+#include <iostream>
 #include <libgen.h>
-#include <stdarg.h>
+#include <cstdarg>
 #include <cstdint>
 #include <cstdio>
-#include <stdlib.h>
-#include <stdnoreturn.h>
+#include <cstdlib>
 #include <cstring>
-#include <strings.h>
+#include <stdexcept>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <time.h>
+#include <ctime>
 #include <unistd.h>
 #include <string>
 #include <vector>
+#include <unordered_map>
 
 #define MAX(x, y) ((x) < (y) ? (y) : (x))
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
@@ -33,13 +31,30 @@ typedef struct Member Member;
 typedef struct Relocation Relocation;
 typedef struct Hideset Hideset;
 
+inline std::string format(const std::string& fmt, ...) {
+  char* buf;
+  size_t buflen;
+  FILE *out = open_memstream(&buf, &buflen);
+
+  va_list ap;
+  va_start(ap, fmt.c_str());
+  vfprintf(out, fmt.c_str(), ap);
+  va_end(ap);
+  fclose(out);
+  return buf;
+}
+
+#define unreachable() \
+  std::cerr << "FATAL ERROR\n"; \
+  std::abort(); \
+
 //
 // strings.c
 //
 
 /*
 typedef struct {
-  char **data;
+  std::string *data;
   int capacity;
   int len;
 } StringArray;
@@ -50,14 +65,14 @@ using StringArray = std::vector<std::string>;
 inline void strarray_push(StringArray& arr, const std::string& s) {
   arr.emplace_back(s);
 }
-char *format(char *fmt, ...) __attribute__((format(printf, 1, 2)));
+//std::string format(std::string fmt, ...) __attribute__((format(printf, 1, 2)));
 
 //
 // tokenize.c
 //
 
 // Token
-typedef enum {
+typedef enum : uint8_t {
   TK_IDENT,   // Identifiers
   TK_PUNCT,   // Punctuators
   TK_KEYWORD, // Keywords
@@ -68,12 +83,12 @@ typedef enum {
 } TokenKind;
 
 typedef struct {
-  char *name;
+  std::string name;
   int file_no;
-  char *contents;
+  std::string contents;
 
   // For #line directive
-  char *display_name;
+  std::string display_name;
   int line_delta;
 } File;
 
@@ -84,13 +99,13 @@ struct Token {
   Token *next;      // Next token
   int64_t val;      // If kind is TK_NUM, its value
   long double fval; // If kind is TK_NUM, its value
-  char *loc;        // Token location
+  std::string loc;        // Token location
   int len;          // Token length
   Type *ty;         // Used if TK_NUM or TK_STR
-  char *str;        // String literal contents including terminating '\0'
+  std::string str;        // String literal contents including terminating '\0'
 
   File *file;       // Source location
-  char *filename;   // Filename
+  std::string filename;   // Filename
   int line_no;      // Line number
   int line_delta;   // Line number
   bool at_bol;      // True if this token is at beginning of line
@@ -99,31 +114,42 @@ struct Token {
   Token *origin;    // If this is expanded from a macro, the original token
 };
 
-noreturn void error(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
-noreturn void error_at(char *loc, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
-noreturn void error_tok(Token *tok, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
-void warn_tok(Token *tok, char *fmt, ...) __attribute__((format(printf, 2, 3)));
-bool equal(Token *tok,const char *op);
-Token *skip(Token *tok, const char *op);
-bool consume(Token **rest, Token *tok, const char *str);
+[[noreturn]] inline void error(const std::string& fmt) {
+  std::cerr << fmt;
+  throw std::runtime_error("");
+}
+[[noreturn]] inline void error_at(const std::string& loc, const std::string& fmt) {
+  std::cerr << loc << '\n' << fmt; 
+  throw std::runtime_error("");
+}
+[[noreturn]] inline void error_tok(Token& tok, const std::string& fmt, const std::string& fmt2="", const std::string& fmt3="") {
+  std::cerr << tok.filename << ":" << tok.line_no << ": error: "
+  << fmt << fmt2 << fmt3 << '\n';
+  throw std::runtime_error("");
+}
+void inline warn_tok(Token& tok, const std::string& fmt) {
+  std::cerr << tok.filename << ":" << tok.line_no << ": warning: "
+  << fmt << '\n';
+}
+bool equal(Token *tok,const std::string op);
+Token *skip(Token *tok, const std::string op);
+bool consume(Token **rest, Token *tok, const std::string str);
 void convert_pp_tokens(Token *tok);
 File **get_input_files(void);
-File *new_file(char *name, int file_no, char *contents);
+File *new_file(std::string name, int file_no, std::string contents);
 Token *tokenize_string_literal(Token *tok, Type *basety);
 Token *tokenize(File *file);
-Token *tokenize_file(char *filename);
+Token *tokenize_file(std::string filename);
 
-#define unreachable() \
-  error("internal error at %s:%d", __FILE__, __LINE__)
 
 //
 // preprocess.c
 //
 
-char *search_include_paths(char *filename);
+std::string search_include_paths(std::string filename);
 void init_macros(void);
-void define_macro(char *name, char *buf);
-void undef_macro(char *name);
+void define_macro(const std::string& name, const std::string& buf);
+void undef_macro(const std::string& name);
 Token *preprocess(Token *tok);
 
 //
@@ -134,7 +160,7 @@ Token *preprocess(Token *tok);
 typedef struct Obj Obj;
 struct Obj {
   Obj *next;
-  char *name;    // Variable name
+  std::string name;    // Variable name
   Type *ty;      // Type
   Token *tok;    // representative token
   bool is_local; // local or global/function
@@ -151,7 +177,7 @@ struct Obj {
   // Global variable
   bool is_tentative;
   bool is_tls;
-  char *init_data;
+  std::string init_data;
   Relocation *rel;
 
   // Function
@@ -176,12 +202,12 @@ typedef struct Relocation Relocation;
 struct Relocation {
   Relocation *next;
   int offset;
-  char **label;
+  std::string *label;
   long addend;
 };
 
 // AST node
-typedef enum {
+typedef enum : uint8_t {
   ND_NULL_EXPR, // Do nothing
   ND_ADD,       // +
   ND_SUB,       // -
@@ -250,8 +276,8 @@ struct Node {
   Node *inc;
 
   // "break" and "continue" labels
-  char *brk_label;
-  char *cont_label;
+  std::string brk_label;
+  std::string cont_label;
 
   // Block or statement expression
   Node *body;
@@ -266,8 +292,8 @@ struct Node {
   Obj *ret_buffer;
 
   // Goto or labeled statement, or labels-as-values
-  char *label;
-  char *unique_label;
+  std::string label;
+  std::string unique_label;
   Node *goto_next;
 
   // Switch
@@ -279,7 +305,7 @@ struct Node {
   long end;
 
   // "asm" string literal
-  char *asm_str;
+  std::string asm_str;
 
   // Atomic compare-and-swap
   Node *cas_addr;
@@ -423,34 +449,33 @@ int align_to(int n, int align);
 // unicode.c
 //
 
-int encode_utf8(char *buf, uint32_t c);
-uint32_t decode_utf8(char **new_pos, char *p);
+int encode_utf8(std::string buf, uint32_t c);
+uint32_t decode_utf8(std::string *new_pos, std::string p);
 bool is_ident1(uint32_t c);
 bool is_ident2(uint32_t c);
-int display_width(char *p, int len);
+int display_width(std::string p, int len);
 
 //
 // hashmap.c
 //
 
+using HashMap = std::unordered_map<std::string, void*>;
 
-extern std::unordered_map<std::string, void*> map;
-
-void *hashmap_get(const std::string& key);
-void *hashmap_get2(std::string key, int keylen);
-void hashmap_put(const std::string& key, void *val);
-void hashmap_put2(std::string key, int keylen, void *val);
-void hashmap_delete(std::string key);
-void hashmap_delete2(std::string key, int keylen);
+void *hashmap_get(HashMap& map, const std::string& key);
+void *hashmap_get2(HashMap& map, const std::string& key, int keylen);
+void hashmap_put(HashMap& map, const std::string& key, void *val);
+void hashmap_put2(HashMap& map, const std::string& key, int keylen, void *val);
+void hashmap_delete(HashMap& map, const std::string& key);
+void hashmap_delete2(HashMap& map, const std::string& key, int keylen);
 void hashmap_test(void);
 
 //
 // main.c
 //
 
-bool file_exists(char *path);
+bool file_exists(std::string path);
 
 extern StringArray include_paths;
 extern bool opt_fpic;
 extern bool opt_fcommon;
-extern char *base_file;
+extern std::string base_file;
