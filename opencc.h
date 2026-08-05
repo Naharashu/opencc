@@ -131,9 +131,12 @@ void inline warn_tok(Token& tok, const std::string& fmt) {
   std::cerr << tok.filename << ":" << tok.line_no << ": warning: "
   << fmt << '\n';
 }
-bool equal(Token *tok,const std::string op);
-Token *skip(Token *tok, const std::string op);
-bool consume(Token **rest, Token *tok, const std::string str);
+bool equal(Token *tok, const char* op);
+bool equal(Token *tok, const std::string& op);
+Token *skip(Token *tok, const char* op);
+Token *skip(Token *tok, const std::string& op);
+bool consume(Token **rest, Token *tok, const char* str);
+bool consume(Token **rest, Token *tok, const std::string& str);
 void convert_pp_tokens(Token *tok);
 File **get_input_files(void);
 File *new_file(std::string name, int file_no, const std::string& contents);
@@ -208,7 +211,7 @@ struct Relocation {
 
 // AST node
 typedef enum : uint8_t {
-  ND_NULL_EXPR, // Do nothing
+  ND_nullptr_EXPR, // Do nothing
   ND_ADD,       // +
   ND_SUB,       // -
   ND_MUL,       // *
@@ -450,7 +453,7 @@ int align_to(int n, int align);
 //
 
 int encode_utf8(char* buf, uint32_t c);
-uint32_t decode_utf8(char** new_pos, std::string p);
+uint32_t decode_utf8(char** new_pos, char* p);
 bool is_ident1(uint32_t c);
 bool is_ident2(uint32_t c);
 int display_width(char* p, int len);

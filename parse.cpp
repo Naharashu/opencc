@@ -104,7 +104,7 @@ std::string brk_label;
 std::string cont_label;
 
 // Points to a node representing a switch if we are parsing
-// a switch statement. Otherwise, NULL.
+// a switch statement. Otherwise, nullptr.
 Node *current_switch;
 
 Obj *builtin_alloca;
@@ -180,7 +180,7 @@ VarScope *find_var(Token *tok) {
     if (sc2)
       return sc2;
   }
-  return NULL;
+  return nullptr;
 }
 
 Type *find_tag(Token *tok) {
@@ -189,7 +189,7 @@ Type *find_tag(Token *tok) {
     if (ty)
       return ty;
   }
-  return NULL;
+  return nullptr;
 }
 
 Node *new_node(NodeKind kind, Token *tok) {
@@ -354,7 +354,7 @@ Type *find_typedef(Token *tok) {
     if (sc)
       return sc->type_def;
   }
-  return NULL;
+  return nullptr;
 }
 
 void push_tag_scope(Token *tok, Type *ty) {
@@ -606,7 +606,7 @@ Type *func_params(Token **rest, Token *tok, Type *ty) {
       break;
     }
 
-    Type *ty2 = declspec(&tok, tok, NULL);
+    Type *ty2 = declspec(&tok, tok, nullptr);
     ty2 = declarator(&tok, tok, ty2);
 
     Token *name = ty2->name;
@@ -694,7 +694,7 @@ Type *declarator(Token **rest, Token *tok, Type *ty) {
     return declarator(&tok, start->next, ty);
   }
 
-  Token *name = NULL;
+  Token *name = nullptr;
   Token *name_pos = tok;
 
   if (tok->kind == TK_IDENT) {
@@ -726,7 +726,7 @@ Type *abstract_declarator(Token **rest, Token *tok, Type *ty) {
 
 // type-name = declspec abstract-declarator
 Type *type_name(Token **rest, Token *tok) {
-  Type *ty = declspec(&tok, tok, NULL);
+  Type *ty = declspec(&tok, tok, nullptr);
   return abstract_declarator(rest, tok, ty);
 }
 
@@ -756,7 +756,7 @@ Type *enum_specifier(Token **rest, Token *tok) {
   Type *ty = enum_type();
 
   // Read a struct tag.
-  Token *tag = NULL;
+  Token *tag = nullptr;
   if (tok->kind == TK_IDENT) {
     tag = tok;
     tok = tok->next;
@@ -815,7 +815,7 @@ Type *typeof_specifier(Token **rest, Token *tok) {
 
 // Generate code for computing a VLA size.
 Node *compute_vla_size(Type *ty, Token *tok) {
-  Node *node = new_node(ND_NULL_EXPR, tok);
+  Node *node = new_node(ND_nullptr_EXPR, tok);
   if (ty->base)
     node = new_binary(ND_COMMA, node, compute_vla_size(ty->base, tok), tok);
 
@@ -1044,7 +1044,7 @@ void designation(Token **rest, Token *tok, Initializer *init) {
   if (equal(tok, ".") && init->ty->kind == TY_STRUCT) {
     Member *mem = struct_designator(&tok, tok, init->ty);
     designation(&tok, tok, init->children[mem->idx]);
-    init->expr = NULL;
+    init->expr = nullptr;
     struct_initializer2(rest, tok, init, mem->next);
     return;
   }
@@ -1334,7 +1334,7 @@ Node *init_desg_expr(InitDesg *desg, Token *tok) {
 
 Node *create_lvar_init(Initializer *init, Type *ty, InitDesg *desg, Token *tok) {
   if (ty->kind == TY_ARRAY) {
-    Node *node = new_node(ND_NULL_EXPR, tok);
+    Node *node = new_node(ND_nullptr_EXPR, tok);
     for (int i = 0; i < ty->array_len; i++) {
       InitDesg desg2 = {desg, i};
       Node *rhs = create_lvar_init(init->children[i], ty->base, &desg2, tok);
@@ -1344,7 +1344,7 @@ Node *create_lvar_init(Initializer *init, Type *ty, InitDesg *desg, Token *tok) 
   }
 
   if (ty->kind == TY_STRUCT && !init->expr) {
-    Node *node = new_node(ND_NULL_EXPR, tok);
+    Node *node = new_node(ND_nullptr_EXPR, tok);
 
     for (Member *mem = ty->members; mem; mem = mem->next) {
       InitDesg desg2 = {desg, 0, mem};
@@ -1361,7 +1361,7 @@ Node *create_lvar_init(Initializer *init, Type *ty, InitDesg *desg, Token *tok) 
   }
 
   if (!init->expr)
-    return new_node(ND_NULL_EXPR, tok);
+    return new_node(ND_nullptr_EXPR, tok);
 
   Node *lhs = init_desg_expr(desg, tok);
   return new_binary(ND_ASSIGN, lhs, init->expr, tok);
@@ -1379,7 +1379,7 @@ Node *create_lvar_init(Initializer *init, Type *ty, InitDesg *desg, Token *tok) 
 //   x[1][1] = 9;
 Node *lvar_initializer(Token **rest, Token *tok, Obj *var) {
   Initializer *init = initializer(rest, tok, var->ty, &var->ty);
-  InitDesg desg = {NULL, 0, NULL, var};
+  InitDesg desg = {nullptr, 0, nullptr, var};
 
   // If a partial initializer list is given, the standard requires
   // that unspecified elements are set to 0. Here, we simply
@@ -1467,7 +1467,7 @@ Relocation *write_gvar_data(Relocation *cur, Initializer *init, Type *ty, char* 
     return cur;
   }
 
-  std::string *label = NULL;
+  std::string *label = nullptr;
   uint64_t val = eval2(init->expr, &label);
 
   if (!label) {
@@ -1648,8 +1648,8 @@ Node *stmt(Token **rest, Token *tok) {
     cont_label = node->cont_label = new_unique_name();
 
     if (is_type_name(tok)) {
-      Type *basety = declspec(&tok, tok, NULL);
-      node->init = declaration(&tok, tok, basety, NULL);
+      Type *basety = declspec(&tok, tok, nullptr);
+      node->init = declaration(&tok, tok, basety, nullptr);
     } else {
       node->init = expr_stmt(&tok, tok);
     }
@@ -1830,7 +1830,7 @@ Node *expr(Token **rest, Token *tok) {
 }
 
 int64_t eval(Node *node) {
-  return eval2(node, NULL);
+  return eval2(node, nullptr);
 }
 
 // Evaluate a given node as a constant expression.
@@ -2640,7 +2640,7 @@ Type *struct_union_decl(Token **rest, Token *tok) {
   tok = attribute_list(tok, ty);
 
   // Read a tag.
-  Token *tag = NULL;
+  Token *tag = nullptr;
   if (tok->kind == TK_IDENT) {
     tag = tok;
     tok = tok->next;
@@ -2754,7 +2754,7 @@ Member *get_struct_member(Type *ty, Token *tok) {
     if (mem->name->len == tok->len && mem->name->loc.compare(0, tok->len, tok->loc, 0, tok->len) == 0)
       return mem;
   }
-  return NULL;
+  return nullptr;
 }
 
 // Create a node representing a struct member access, such as foo.bar
@@ -2815,7 +2815,7 @@ Node *postfix(Token **rest, Token *tok) {
     Type *ty = type_name(&tok, tok->next);
     tok = skip(tok, ")");
 
-    if (scope->next == NULL) {
+    if (scope->next == nullptr) {
       Obj *var = new_anon_gvar(ty);
       gvar_initializer(rest, tok, var);
       return new_var_node(var, start);
@@ -2946,7 +2946,7 @@ Node *generic_selection(Token **rest, Token *tok) {
   else if (t1->kind == TY_ARRAY)
     t1 = pointer_to(t1->base);
 
-  Node *ret = NULL;
+  Node *ret = nullptr;
 
   while (!consume(rest, tok, ")")) {
     tok = skip(tok, ",");
@@ -3174,7 +3174,7 @@ void resolve_goto_labels() {
       error_tok(*x->tok->next, "use of undeclared label");
   }
 
-  gotos = labels = NULL;
+  gotos = labels = nullptr;
 }
 
 Obj *find_func(std::string name) {
@@ -3185,7 +3185,7 @@ Obj *find_func(std::string name) {
   VarScope *sc2 = (VarScope*)hashmap_get(sc->vars, name);
   if (sc2 && sc2->var && sc2->var->is_function)
     return sc2->var;
-  return NULL;
+  return nullptr;
 }
 
 void mark_live(Obj *var) {
@@ -3230,7 +3230,7 @@ Token *function(Token *tok, Type *basety, VarAttr *attr) {
     return tok;
 
   current_fn = fn;
-  locals = NULL;
+  locals = nullptr;
   enter_scope();
   create_param_lvars(ty->params);
 
@@ -3326,7 +3326,7 @@ void scan_globals() {
       cur = cur->next = var;
   }
 
-  cur->next = NULL;
+  cur->next = nullptr;
   globals = head.next;
 }
 
@@ -3340,7 +3340,7 @@ void declare_builtin_functions() {
 // program = (typedef | function-definition | global-variable)*
 Obj *parse(Token *tok) {
   declare_builtin_functions();
-  globals = NULL;
+  globals = nullptr;
 
   while (tok->kind != TK_EOF) {
     VarAttr attr = {};

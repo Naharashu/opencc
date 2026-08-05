@@ -100,9 +100,21 @@ bool consume(Token **rest, Token *tok, const char* str) {
   return false;
 }
 
+bool equal(Token *tok, const std::string& op) {
+  return equal(tok, op.c_str());
+}
+
+Token *skip(Token *tok, const std::string& op) {
+  return skip(tok, op.c_str());
+}
+
+bool consume(Token **rest, Token *tok, const std::string& str) {
+  return consume(rest, tok, str.c_str());
+}
+
 // Create a new token.
-static Token *new_token(TokenKind kind, std::string start, std::string end) {
-  Token *tok = (Token*)calloc(1, sizeof(Token));
+static Token *new_token(TokenKind kind, std::string_view start, std::string_view end) {
+  Token *tok = new Token();
   tok->kind = kind;
   tok->loc = start;
   tok->len = end.data() - start.data();
@@ -248,7 +260,8 @@ static std::string string_literal_end(char* p) {
 
 static Token *read_string_literal(const std::string& start, std::string& quote) {
   std::string end = string_literal_end(quote.data() + 1);
-  std::string buf = (char*)calloc(1, end.data() - quote.data());
+  size_t buflen = end.data() - quote.data();
+  char *buf = (char*)calloc(1, buflen);
   int len = 0;
 
   for (char* p = quote.data() + 1; p < end;) {
@@ -258,9 +271,12 @@ static Token *read_string_literal(const std::string& start, std::string& quote) 
       buf[len++] = *p++;
   }
 
+  // Ensure null-termination
+  buf[len] = '\0';
+
   Token *tok = new_token(TK_STR, start, end.data() + 1);
   tok->ty = array_of(ty_char, len + 1);
-  tok->str = buf.data();
+  tok->str = buf; // ownership: caller must free when appropriate
   return tok;
 }
 
@@ -471,7 +487,7 @@ static void add_line_numbers(Token *tok) {
   int n = 1;
 
   do {
-    if (p == tok->loc) {
+    if (p == tok->loc.data()) {
       tok->line_no = n;
       tok = tok->next;
     }
@@ -654,7 +670,7 @@ static std::string read_file(const std::string& path) {
   } else {
     fp = fopen(path.c_str(), "r");
     if (!fp)
-      return NULL;
+      return nullptr;
   }
 
   char* buf;
@@ -682,12 +698,12 @@ static std::string read_file(const std::string& path) {
   return buf;
 }
 
-inline File **get_input_files() {
+File **get_input_files() {
   return input_files;
 }
 
 File *new_file(std::string name, int file_no, const std::string& contents) {
-  File *file = (File*)calloc(1, sizeof(File));
+  File *file = new File();
   file->name = name;
   file->display_name = name;
   file->file_no = file_no;
@@ -785,9 +801,9 @@ static void convert_universal_chars(char* p) {
 
 Token *tokenize_file(std::string path) {
   std::string temp = read_file(path);
-  char* p = temp.data();
-  if (!p)
+  if (temp.empty())
     return nullptr;
+  char* p = temp.data();
 
   // UTF-8 texts may start with a 3-byte "BOM" marker sequence.
   // If exists, just skip them because they are useless bytes.
@@ -805,9 +821,9 @@ Token *tokenize_file(std::string path) {
   File *file = new_file(path, file_no + 1, p);
 
   // Save the filename for assembler .file directive.
-  input_files = static_cast<File**>(realloc(input_files, sizeof(std::string ) * (file_no + 2)));
+  input_files = static_cast<File**>(realloc(input_files, sizeof(File*) * (file_no + 2)));
   input_files[file_no] = file;
-  input_files[file_no + 1] = NULL;
+  input_files[file_no + 1] = nullptr;
   file_no++;
 
   return tokenize(file);

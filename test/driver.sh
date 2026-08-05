@@ -16,7 +16,7 @@ check() {
 
 # -o
 rm -f $tmp/out
-./chibicc -c -o $tmp/out $tmp/empty.c
+./opencc -c -o $tmp/out $tmp/empty.c
 [ -f $tmp/out ]
 check -o
 
@@ -106,7 +106,7 @@ check -U
 # ignored options
 $chibicc -c -O -Wall -g -std=c11 -ffreestanding -fno-builtin \
          -fno-omit-frame-pointer -fno-stack-protector -fno-strict-aliasing \
-         -m64 -mno-red-zone -w -o /dev/null $tmp/empty.c
+         -m64 -mno-red-zone -w -o /dev/nullptr $tmp/empty.c
 check 'ignored options'
 
 # BOM marker
@@ -117,12 +117,12 @@ check 'BOM marker'
 echo 'inline void foo() {}' > $tmp/inline1.c
 echo 'inline void foo() {}' > $tmp/inline2.c
 echo 'int main() { return 0; }' > $tmp/inline3.c
-$chibicc -o /dev/null $tmp/inline1.c $tmp/inline2.c $tmp/inline3.c
+$chibicc -o /dev/nullptr $tmp/inline1.c $tmp/inline2.c $tmp/inline3.c
 check inline
 
 echo 'extern inline void foo() {}' > $tmp/inline1.c
 echo 'int foo(); int main() { foo(); }' > $tmp/inline2.c
-$chibicc -o /dev/null $tmp/inline1.c $tmp/inline2.c
+$chibicc -o /dev/nullptr $tmp/inline1.c $tmp/inline2.c
 check inline
 
 echo 'static inline void f1() {}' | $chibicc -o- -S -xc - | grep -v -q f1:
@@ -185,7 +185,7 @@ check '-fno-common'
 echo foo > $tmp/out.h
 echo bar | $chibicc -include $tmp/out.h -E -o- -xc - | grep -q -z 'foo.*bar'
 check -include
-echo NULL | $chibicc -Iinclude -include stdio.h -E -o- -xc - | grep -q 0
+echo nullptr | $chibicc -Iinclude -include stdio.h -E -o- -xc - | grep -q 0
 check -include
 
 # -x

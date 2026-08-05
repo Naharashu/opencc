@@ -39,16 +39,16 @@ static int add_millions(void) {
   pthread_t thr2;
   pthread_t thr3;
 
-  pthread_create(&thr1, NULL, add1, &x);
-  pthread_create(&thr2, NULL, add2, &x);
-  pthread_create(&thr3, NULL, add3, &x);
+  pthread_create(&thr1, nullptr, add1, &x);
+  pthread_create(&thr2, nullptr, add2, &x);
+  pthread_create(&thr3, nullptr, add3, &x);
 
   for (int i = 0; i < 1000*1000; i++)
     x--;
 
-  pthread_join(thr1, NULL);
-  pthread_join(thr2, NULL);
-  pthread_join(thr3, NULL);
+  pthread_join(thr1, nullptr);
+  pthread_join(thr2, nullptr);
+  pthread_join(thr3, nullptr);
   return x;
 }
 

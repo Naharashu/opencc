@@ -29,8 +29,8 @@ int main() {
   ASSERT(5, v2);
   ASSERT(7, v3);
 
-  ASSERT(0, pthread_create(&thr, NULL, thread_main, NULL));
-  ASSERT(0, pthread_join(thr, NULL));
+  ASSERT(0, pthread_create(&thr, nullptr, thread_main, nullptr));
+  ASSERT(0, pthread_join(thr, nullptr));
 
   ASSERT(0, v1);
   ASSERT(5, v2);

@@ -95,9 +95,9 @@ Token *skip_line(Token* tok) {
 }
 
 Token *copy_token(Token* tok) {
-  Token *t = (Token*)calloc(1, sizeof(Token));
+  Token *t = new Token();
   *t = *tok;
-  t->next = NULL;
+  t->next = nullptr;
   return t;
 }
 
@@ -109,7 +109,7 @@ Token *new_eof(Token* tok) {
 }
 
 Hideset *new_hideset(const std::string& name) {
-  Hideset *hs = (Hideset*)calloc(1, sizeof(Hideset));
+  Hideset *hs = new Hideset();
   hs->name = name;
   return hs;
 }
@@ -314,7 +314,7 @@ long eval_const_expr(Token **rest, Token* tok) {
 }
 
 CondIncl *push_cond_incl(Token* tok, bool included) {
-  CondIncl *ci = (CondIncl*)calloc(1, sizeof(CondIncl));
+  CondIncl *ci = new CondIncl();
   ci->next = cond_incl;
   ci->ctx = IN_THEN;
   ci->tok = tok;
@@ -325,12 +325,12 @@ CondIncl *push_cond_incl(Token* tok, bool included) {
 
 Macro *find_macro(Token* tok) {
   if (tok->kind != TK_IDENT)
-    return NULL;
+    return nullptr;
   return static_cast<Macro*>(hashmap_get2(macros, tok->loc, tok->len));
 }
 
 Macro *add_macro(const std::string& name, bool is_objlike, Token *body) {
-  Macro *m = (Macro*)calloc(1, sizeof(Macro));
+  Macro *m = new Macro();
   m->name = name;
   m->is_objlike = is_objlike;
   m->body = body;
@@ -361,7 +361,7 @@ MacroParam *read_macro_params(Token **rest, Token* tok, std::string va_args_name
       return head.next;
     }
 
-    MacroParam *m = static_cast<MacroParam*>(calloc(1, sizeof(MacroParam)));
+      MacroParam *m = new MacroParam();
     m->name = std::string(tok->loc, tok->len);
     cur = cur->next = m;
     tok = tok->next;
@@ -379,7 +379,7 @@ void read_macro_definition(Token **rest, Token* tok) {
 
   if (!tok->has_space && equal(tok, "(")) {
     // Function-like macro
-    std::string va_args_name = NULL;
+    std::string va_args_name = nullptr;
     MacroParam *params = read_macro_params(&tok, tok->next, va_args_name);
 
     Macro *m = add_macro(name, false, copy_line(rest, tok));
@@ -416,7 +416,7 @@ MacroArg *read_macro_arg_one(Token **rest, Token* tok, bool read_rest) {
 
   cur->next = new_eof(tok);
 
-  MacroArg *arg = (MacroArg*)calloc(1, sizeof(MacroArg));
+  MacroArg *arg = new MacroArg();
   arg->tok = head.next;
   *rest = tok;
   return arg;
@@ -441,7 +441,7 @@ read_macro_args(Token **rest, Token* tok, MacroParam *params, std::string& va_ar
   if (!va_args_name.empty()) {
     MacroArg *arg;
     if (equal(tok, ")")) {
-      arg = (MacroArg*)calloc(1, sizeof(MacroArg));
+        arg = new MacroArg();
       arg->tok = new_eof(tok);
     } else {
       if (pp != params)
@@ -464,7 +464,7 @@ MacroArg *find_arg(MacroArg *args, Token* tok) {
   for (MacroArg *ap = args; ap; ap = ap->next)
     if (tok->len == ap->name.size() && std::string_view(tok->loc.data(), tok->len) == ap->name)
       return ap;
-  return NULL;
+  return nullptr;
 }
 
 // Concatenates all tokens in `tok` and returns a new string.
@@ -500,7 +500,7 @@ Token *stringize(Token *hash, Token *arg) {
   // Create a new string token. We need to set some value to its
   // source location for error reporting function, so we use a macro
   // name token as a template.
-  std::string s = join_tokens(arg, NULL);
+  std::string s = join_tokens(arg, nullptr);
   return new_str_token(s, hash);
 }
 
@@ -711,7 +711,7 @@ std::string search_include_paths(std::string filename) {
     include_next_idx = i + 1;
     return path;
   }
-  return NULL;
+  return std::string();
 }
 
 std::string search_include_next(const std::string& filename) {
@@ -720,7 +720,7 @@ std::string search_include_next(const std::string& filename) {
     if (std::filesystem::exists(path))
       return path;
   }
-  return NULL;
+  return std::string();
 }
 
 // Read an #include argument.
@@ -774,17 +774,17 @@ std::string read_include_filename(Token **rest, Token* tok, bool *is_dquote) {
 std::string detect_include_guard(Token* tok) {
   // Detect the first two lines.
   if (!is_hash(tok) || !equal(tok->next, "ifndef"))
-    return NULL;
+    return std::string();
   tok = tok->next->next;
 
   if (tok->kind != TK_IDENT)
-    return NULL;
+    return std::string();
 
   std::string macro(tok->loc, tok->len);
   tok = tok->next;
 
   if (!is_hash(tok) || !equal(tok->next, "define") || !equal(tok->next->next, macro))
-    return NULL;
+    return std::string();
 
   // Read until the end of the file.
   while (tok->kind != TK_EOF) {
@@ -801,7 +801,7 @@ std::string detect_include_guard(Token* tok) {
     else
       tok = tok->next;
   }
-  return NULL;
+  return nullptr;
 }
 
 Token *include_file(Token* tok, std::string& path, Token *filename_tok) {
@@ -991,7 +991,7 @@ Token *preprocess2(Token* tok) {
     if (equal(tok, "error"))
       error_tok(*tok, "error");
 
-    // `#`-only line is legal. It's called a null directive.
+    // `#`-only line is legal. It's called a nullptr directive.
     if (tok->at_bol)
       continue;
 
@@ -1012,7 +1012,7 @@ void undef_macro(const std::string& name) {
 }
 
 Macro *add_builtin(const std::string& name, macro_handler_fn *fn) {
-  Macro *m = add_macro(name, true, NULL);
+  Macro *m = add_macro(name, true, nullptr);
   m->handler = fn;
   return m;
 }
@@ -1193,7 +1193,7 @@ void join_adjacent_string_literals(Token* tok) {
 
     int i = 0;
     for (Token *t = tok1; t != tok2; t = t->next) {
-      memcpy(buf.data() + i, t->str.c_str(), t->ty->size);
+      memcpy(buf.data() + i, t->str, t->ty->size);
       i = i + t->ty->size - t->ty->base->size;
     }
 

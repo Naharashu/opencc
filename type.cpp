@@ -93,7 +93,7 @@ bool is_compatible(Type *t1, Type *t2) {
     for (; p1 && p2; p1 = p1->next, p2 = p2->next)
       if (!is_compatible(p1, p2))
         return false;
-    return p1 == NULL && p2 == NULL;
+    return p1 == nullptr && p2 == nullptr;
   }
   case TY_ARRAY:
     if (!is_compatible(t1->base, t2->base))

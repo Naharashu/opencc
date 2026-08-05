@@ -519,7 +519,7 @@ static Token *append_tokens(Token *tok1, Token *tok2) {
 }
 
 static void cc1() {
-  Token *tok = NULL;
+  Token *tok = nullptr;
 
   // Process -include option
   for (int i = 0; i < opt_include.size(); i++) {
@@ -588,7 +588,7 @@ static void assemble(std::string& input, std::string& output) {
 static std::string find_file(std::string pattern) {
   std::string path;
   glob_t buf = {};
-  glob(pattern.c_str(), 0, NULL, &buf);
+  glob(pattern.c_str(), 0, nullptr, &buf);
   if (buf.gl_pathc > 0)
     path = strdup(buf.gl_pathv[buf.gl_pathc - 1]);
   globfree(&buf);
@@ -687,7 +687,7 @@ static void run_linker(StringArray& inputs, const std::string output) {
     strarray_push(arr, format("%s/crtend.o", gcc_libpath.c_str()));
 
   strarray_push(arr, format("%s/crtn.o", libpath.c_str()));
-  strarray_push(arr, NULL);
+  strarray_push(arr, nullptr);
 
   std::vector<char*> cargs;
   for (auto& s : arr)
@@ -745,7 +745,7 @@ int main(int argc, char** argv) {
       char* arg = strtok(s.data(), ",");
       while (arg) {
         strarray_push(ld_args, arg);
-        arg = strtok(NULL, ",");
+        arg = strtok(nullptr, ",");
       }
       continue;
     }
@@ -777,7 +777,7 @@ int main(int argc, char** argv) {
 
     // Just preprocess
     if (opt_E || opt_M) {
-      run_cc1(argc, argv, input.data(), NULL);
+      run_cc1(argc, argv, input.data(), "");
       continue;
     }
 

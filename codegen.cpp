@@ -372,21 +372,21 @@ static char f80u64[] = FROM_F80_1 "fistpq" FROM_F80_2 "mov -24(%rsp), %rax";
 static char f80f32[] = "fstps -8(%rsp); movss -8(%rsp), %xmm0";
 static char f80f64[] = "fstpl -8(%rsp); movsd -8(%rsp), %xmm0";
 
-static std::string cast_table[][11] = {
+static char* cast_table[][11] = {
   // i8   i16     i32     i64     u8     u16     u32     u64     f32     f64     f80
-  {NULL,  NULL,   NULL,   i32i64, i32u8, i32u16, NULL,   i32i64, i32f32, i32f64, i32f80}, // i8
-  {i32i8, NULL,   NULL,   i32i64, i32u8, i32u16, NULL,   i32i64, i32f32, i32f64, i32f80}, // i16
-  {i32i8, i32i16, NULL,   i32i64, i32u8, i32u16, NULL,   i32i64, i32f32, i32f64, i32f80}, // i32
-  {i32i8, i32i16, NULL,   NULL,   i32u8, i32u16, NULL,   NULL,   i64f32, i64f64, i64f80}, // i64
+  {nullptr,  nullptr,   nullptr,   i32i64, i32u8, i32u16, nullptr,   i32i64, i32f32, i32f64, i32f80}, // i8
+  {i32i8, nullptr,   nullptr,   i32i64, i32u8, i32u16, nullptr,   i32i64, i32f32, i32f64, i32f80}, // i16
+  {i32i8, i32i16, nullptr,   i32i64, i32u8, i32u16, nullptr,   i32i64, i32f32, i32f64, i32f80}, // i32
+  {i32i8, i32i16, nullptr,   nullptr,   i32u8, i32u16, nullptr,   nullptr,   i64f32, i64f64, i64f80}, // i64
 
-  {i32i8, NULL,   NULL,   i32i64, NULL,  NULL,   NULL,   i32i64, i32f32, i32f64, i32f80}, // u8
-  {i32i8, i32i16, NULL,   i32i64, i32u8, NULL,   NULL,   i32i64, i32f32, i32f64, i32f80}, // u16
-  {i32i8, i32i16, NULL,   u32i64, i32u8, i32u16, NULL,   u32i64, u32f32, u32f64, u32f80}, // u32
-  {i32i8, i32i16, NULL,   NULL,   i32u8, i32u16, NULL,   NULL,   u64f32, u64f64, u64f80}, // u64
+  {i32i8, nullptr,   nullptr,   i32i64, nullptr,  nullptr,   nullptr,   i32i64, i32f32, i32f64, i32f80}, // u8
+  {i32i8, i32i16, nullptr,   i32i64, i32u8, nullptr,   nullptr,   i32i64, i32f32, i32f64, i32f80}, // u16
+  {i32i8, i32i16, nullptr,   u32i64, i32u8, i32u16, nullptr,   u32i64, u32f32, u32f64, u32f80}, // u32
+  {i32i8, i32i16, nullptr,   nullptr,   i32u8, i32u16, nullptr,   nullptr,   u64f32, u64f64, u64f80}, // u64
 
-  {f32i8, f32i16, f32i32, f32i64, f32u8, f32u16, f32u32, f32u64, NULL,   f32f64, f32f80}, // f32
-  {f64i8, f64i16, f64i32, f64i64, f64u8, f64u16, f64u32, f64u64, f64f32, NULL,   f64f80}, // f64
-  {f80i8, f80i16, f80i32, f80i64, f80u8, f80u16, f80u32, f80u64, f80f32, f80f64, NULL},   // f80
+  {f32i8, f32i16, f32i32, f32i64, f32u8, f32u16, f32u32, f32u64, nullptr,   f32f64, f32f80}, // f32
+  {f64i8, f64i16, f64i32, f64i64, f64u8, f64u16, f64u32, f64u64, f64f32, nullptr,   f64f80}, // f64
+  {f80i8, f80i16, f80i32, f80i64, f80u8, f80u16, f80u32, f80u64, f80f32, f80f64, nullptr},   // f80
 };
 
 static void cast(Type *from, Type *to) {
@@ -402,8 +402,8 @@ static void cast(Type *from, Type *to) {
 
   int t1 = getTypeId(from);
   int t2 = getTypeId(to);
-  if (!cast_table[t1][t2].empty())
-    println("  %s", cast_table[t1][t2].c_str());
+  if (cast_table[t1][t2])
+    println("  %s", cast_table[t1][t2]);
 }
 
 // Structs or unions equal or smaller than 16 bytes are passed
@@ -695,7 +695,7 @@ static void gen_expr(Node *node) {
   println("  .loc %d %d", node->tok->file->file_no, node->tok->line_no);
 
   switch (node->kind) {
-  case ND_NULL_EXPR:
+  case ND_nullptr_EXPR:
     return;
   case ND_NUM: {
     switch (node->ty->kind) {
