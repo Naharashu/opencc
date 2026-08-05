@@ -1,4 +1,5 @@
 #include "opencc.h"
+#include <cassert>
 #include <string>
 #include <vector>
 
@@ -49,7 +50,7 @@ static bool take_arg(std::string arg) {
   };
 
   for (int i = 0; i < sizeof(x) / sizeof(*x); i++)
-    if (!strcmp(arg, x[i]))
+    if ((arg == x[i]))
       return true;
   return false;
 }
@@ -57,7 +58,7 @@ static bool take_arg(std::string arg) {
 static void add_default_include_paths(std::string argv0) {
   // We expect that chibicc-specific include files are installed
   // to ./include relative to argv[0].
-  strarray_push(include_paths, format("%s/include", dirname(strdup(argv0))));
+  strarray_push(include_paths, format("%s/include", dirname(strdup(argv0.c_str()))));
 
   // Add standard include paths.
   strarray_push(include_paths, "/usr/local/include");
@@ -70,25 +71,25 @@ static void add_default_include_paths(std::string argv0) {
 }
 
 static void define(std::string str) {
-  std::string eq = strchr(str, '=');
-  if (eq)
-    define_macro(strndup(str, eq - str), eq + 1);
+  std::string eq = strchr(str.c_str(), '=');
+  if (!eq.empty())
+    define_macro(strndup(str.data(), eq.data() - str.data()), eq.data() + 1);
   else
     define_macro(str, "1");
 }
 
 static FileType parse_opt_x(std::string s) {
-  if (!strcmp(s, "c"))
+  if (s == "c")
     return FILE_C;
-  if (!strcmp(s, "assembler"))
+  if (s =="assembler")
     return FILE_ASM;
-  if (!strcmp(s, "none"))
+  if (s == "none")
     return FILE_NONE;
-  error("<command line>: unknown argument for -x: %s", s);
+  error(format("<command line>: unknown argument for -x: %s", s.c_str()));
 }
 
 static std::string quote_makefile(std::string s) {
-  std::string buf = new char[strlen(s) * 2 + 1]();
+  std::string buf = new char[s.size() * 2 + 1]();
 
   for (int i = 0, j = 0; s[i]; i++) {
     switch (s[i]) {
@@ -115,7 +116,7 @@ static std::string quote_makefile(std::string s) {
   return buf;
 }
 
-static void parse_args(int argc, std::string *argv) {
+static void parse_args(int argc, char** argv) {
   // Make sure that all command line options that take an argument
   // have an argument.
   for (int i = 1; i < argc; i++)
@@ -245,10 +246,10 @@ static void parse_args(int argc, std::string *argv) {
     }
 
     if (!strcmp(argv[i], "-MT")) {
-      if (opt_MT == NULL)
+      if (opt_MT.empty())
         opt_MT = argv[++i];
       else
-        opt_MT = format("%s %s", opt_MT, argv[++i]);
+        opt_MT = format("%s %s", opt_MT.c_str(), argv[++i]);
       continue;
     }
 
@@ -258,10 +259,12 @@ static void parse_args(int argc, std::string *argv) {
     }
 
     if (!strcmp(argv[i], "-MQ")) {
-      if (opt_MT == NULL)
+      if (opt_MT.empty())
         opt_MT = quote_makefile(argv[++i]);
-      else
-        opt_MT = format("%s %s", opt_MT, quote_makefile(argv[++i]));
+      else {
+        std::string argv_i = argv[++i];
+        opt_MT = format("%s %s", opt_MT.c_str(), quote_makefile(argv_i).c_str());
+      }
       continue;
     }
 
@@ -335,7 +338,7 @@ static void parse_args(int argc, std::string *argv) {
       continue;
 
     if (argv[i][0] == '-' && argv[i][1] != '\0')
-      error("unknown argument: %s", argv[i]);
+      error(format("unknown argument: %s", argv[i]));
 
     strarray_push(input_paths, argv[i]);
   }
@@ -352,47 +355,45 @@ static void parse_args(int argc, std::string *argv) {
 }
 
 static FILE *open_file(const std::string path) {
-  if (!path || strcmp(path, "-") == 0)
+  if (!path.empty() || strcmp(path.c_str(), "-") == 0)
     return stdout;
 
-  FILE *out = fopen(path, "w");
+  FILE *out = fopen(path.c_str(), "w");
   if (!out)
-    error("cannot open output file: %s: %s", path, strerror(errno));
+    error(format("cannot open output file: %s: %s", path.c_str(), strerror(errno)));
   return out;
 }
 
-static bool endswith(std::string p, std::string q) {
-  int len1 = strlen(p);
-  int len2 = strlen(q);
-  return (len1 >= len2) && !strcmp(p + len1 - len2, q);
+inline bool endswith(const std::string& p, const std::string& q) {
+  return p.ends_with(q);
 }
 
 // Replace file extension
 static std::string replace_extn(std::string tmpl, std::string extn) {
-  std::string filename = basename(strdup(tmpl));
-  std::string dot = strrchr(filename, '.');
+  std::string filename = basename(strdup(tmpl.c_str()));
+  char* dot = const_cast<char*>(strrchr(filename.c_str(), '.'));
   if (dot)
     *dot = '\0';
-  return format("%s%s", filename, extn);
+  return format("%s%s", filename.c_str(), extn.c_str());
 }
 
-static void cleanup(void) {
+static void cleanup() {
   for (int i = 0; i < tmpfiles.size(); i++)
     unlink(tmpfiles.at(i).c_str());
 }
 
-static std::string create_tmpfile(void) {
+static std::string create_tmpfile() {
   std::string path = strdup("/tmp/chibicc-XXXXXX");
-  int fd = mkstemp(path);
+  int fd = mkstemp(path.data());
   if (fd == -1)
-    error("mkstemp failed: %s", strerror(errno));
+    error(format("mkstemp failed: %s", strerror(errno)));
   close(fd);
 
   strarray_push(tmpfiles, path);
   return path;
 }
 
-static void run_subprocess(std::string *argv) {
+static void run_subprocess(char** argv) {
   // If -### is given, dump the subprocess's command line.
   if (opt_hash_hash_hash) {
     fprintf(stderr, "%s", argv[0]);
@@ -415,18 +416,18 @@ static void run_subprocess(std::string *argv) {
     exit(1);
 }
 
-static void run_cc1(int argc, std::string *argv, std::string input, std::string output) {
+static void run_cc1(int argc, char** argv, std::string input, std::string output) {
   //std::string *args = new char*[argc+10]();
   std::vector<std::string> args(argc+10);
   memcpy((void*)args.data(), (void*)argv, argc * sizeof(std::string ));
   args[argc++] = "-cc1";
 
-  if (input) {
+  if (!input.empty()) {
     args[argc++] = "-cc1-input";
     args[argc++] = input;
   }
 
-  if (output) {
+  if (!output.empty()) {
     args[argc++] = "-cc1-output";
     args[argc++] = output;
   }
@@ -436,7 +437,7 @@ static void run_cc1(int argc, std::string *argv, std::string input, std::string 
 
 // Print tokens to stdout. Used for -E.
 static void print_tokens(Token *tok) {
-  FILE *out = open_file(opt_o ? opt_o : "-");
+  FILE *out = open_file(opt_o.c_str() ? opt_o.c_str() : "-");
 
   int line = 1;
   for (; tok->kind != TK_EOF; tok = tok->next) {
@@ -444,7 +445,7 @@ static void print_tokens(Token *tok) {
       fprintf(out, "\n");
     if (tok->has_space && !tok->at_bol)
       fprintf(out, " ");
-    fprintf(out, "%.*s", tok->len, tok->loc);
+    fprintf(out, "%.*s", tok->len, tok->loc.c_str());
     line++;
   }
   fprintf(out, "\n");
@@ -453,8 +454,8 @@ static void print_tokens(Token *tok) {
 static bool in_std_include_path(std::string path) {
   for (int i = 0; i < std_include_paths.size(); i++) {
     const std::string dir = std_include_paths.at(i).c_str();
-    int len = strlen(dir);
-    if (strncmp(dir, path, len) == 0 && path[len] == '/')
+    int len = dir.size();
+    if (strncmp(dir.c_str(), path.c_str(), len) == 0 && path[len] == '/')
       return true;
   }
   return false;
@@ -463,29 +464,29 @@ static bool in_std_include_path(std::string path) {
 // If -M options is given, the compiler write a list of input files to
 // stdout in a format that "make" command can read. This feature is
 // used to automate file dependency management.
-static void print_dependencies(void) {
+static void print_dependencies() {
   std::string path;
-  if (opt_MF)
+  if (!opt_MF.empty())
     path = opt_MF;
   else if (opt_MD)
-    path = replace_extn(opt_o ? opt_o : base_file, ".d");
-  else if (opt_o)
+    path = replace_extn(opt_o.c_str() ? opt_o.c_str() : base_file.c_str(), ".d");
+  else if (!opt_o.empty())
     path = opt_o;
   else
     path = "-";
 
   FILE *out = open_file(path);
-  if (opt_MT)
-    fprintf(out, "%s:", opt_MT);
+  if (!opt_MT.empty())
+    fprintf(out, "%s:", opt_MT.c_str());
   else
-    fprintf(out, "%s:", quote_makefile(replace_extn(base_file, ".o")));
+    fprintf(out, "%s:", quote_makefile(replace_extn(base_file.c_str(), ".o")).c_str());
 
   File **files = get_input_files();
 
   for (int i = 0; files[i]; i++) {
     if (opt_MMD && in_std_include_path(files[i]->name))
       continue;
-    fprintf(out, " \\\n  %s", files[i]->name);
+    fprintf(out, " \\\n  %s", files[i]->name.c_str());
   }
 
   fprintf(out, "\n\n");
@@ -494,7 +495,7 @@ static void print_dependencies(void) {
     for (int i = 1; files[i]; i++) {
       if (opt_MMD && in_std_include_path(files[i]->name))
         continue;
-      fprintf(out, "%s:\n\n", quote_makefile(files[i]->name));
+      fprintf(out, "%s:\n\n", quote_makefile(files[i]->name).c_str());
     }
   }
 }
@@ -502,7 +503,7 @@ static void print_dependencies(void) {
 static Token *must_tokenize_file(std::string path) {
   Token *tok = tokenize_file(path);
   if (!tok)
-    error("%s: %s", path, strerror(errno));
+    error(format("%s: %s", path.c_str(), strerror(errno)));
   return tok;
 }
 
@@ -517,7 +518,7 @@ static Token *append_tokens(Token *tok1, Token *tok2) {
   return tok1;
 }
 
-static void cc1(void) {
+static void cc1() {
   Token *tok = NULL;
 
   // Process -include option
@@ -530,7 +531,7 @@ static void cc1(void) {
     } else {
       path = search_include_paths(incl.data());
       if (path.empty())
-        error("-include: %s: %s", incl.data(), strerror(errno));
+        error(format("-include: %s: %s", incl.data(), strerror(errno)));
     }
 
     Token *tok2 = must_tokenize_file(path.data());
@@ -558,7 +559,7 @@ static void cc1(void) {
   Obj *prog = parse(tok);
 
   // Open a temporary output buffer.
-  std::string buf;
+  char* buf;
   size_t buflen;
   FILE *output_buf = open_memstream(&buf, &buflen);
 
@@ -572,22 +573,22 @@ static void cc1(void) {
   fclose(out);
 }
 
-static void assemble(std::string input, std::string output) {
-    std::string cmd[] = {
-      const_cast<std::string >("as"),
-      const_cast<std::string >("-c"),
-      input,
-      const_cast<std::string >("-o"),
-      output,
-      nullptr
+static void assemble(std::string& input, std::string& output) {
+  char* cmd[] = {
+    const_cast<char*>("as"),
+    const_cast<char*>("-c"),
+    const_cast<char*>(input.c_str()),
+    const_cast<char*>("-o"),
+    const_cast<char*>(output.c_str()),
+    nullptr
   };
   run_subprocess(cmd);
 }
 
 static std::string find_file(std::string pattern) {
-  std::string path = NULL;
+  std::string path;
   glob_t buf = {};
-  glob(pattern, 0, NULL, &buf);
+  glob(pattern.c_str(), 0, NULL, &buf);
   if (buf.gl_pathc > 0)
     path = strdup(buf.gl_pathv[buf.gl_pathc - 1]);
   globfree(&buf);
@@ -597,10 +598,10 @@ static std::string find_file(std::string pattern) {
 // Returns true if a given file exists.
 bool file_exists(std::string path) {
   struct stat st;
-  return !stat(path, &st);
+  return !stat(path.c_str(), &st);
 }
 
-static std::string find_libpath(void) {
+static std::string find_libpath() {
   if (file_exists("/usr/lib/x86_64-linux-gnu/crti.o"))
     return "/usr/lib/x86_64-linux-gnu";
   if (file_exists("/usr/lib64/crti.o"))
@@ -608,7 +609,7 @@ static std::string find_libpath(void) {
   error("library path is not found");
 }
 
-static std::string find_gcc_libpath(void) {
+static std::string find_gcc_libpath() {
   std::string paths[] = {
     "/usr/lib/gcc/x86_64-linux-gnu/*/crtbegin.o",
     "/usr/lib/gcc/x86_64-pc-linux-gnu/*/crtbegin.o", // For Gentoo
@@ -617,8 +618,8 @@ static std::string find_gcc_libpath(void) {
 
   for (int i = 0; i < sizeof(paths) / sizeof(*paths); i++) {
     std::string path = find_file(paths[i]);
-    if (path)
-      return dirname(path);
+    if (!path.empty())
+      return dirname(path.data());
   }
 
   error("gcc library path is not found");
@@ -637,15 +638,15 @@ static void run_linker(StringArray& inputs, const std::string output) {
   std::string gcc_libpath = find_gcc_libpath();
 
   if (opt_shared) {
-    strarray_push(arr, format("%s/crti.o", libpath));
-    strarray_push(arr, format("%s/crtbeginS.o", gcc_libpath));
+    strarray_push(arr, format("%s/crti.o", libpath.c_str()));
+    strarray_push(arr, format("%s/crtbeginS.o", gcc_libpath.c_str()));
   } else {
-    strarray_push(arr, format("%s/crt1.o", libpath));
-    strarray_push(arr, format("%s/crti.o", libpath));
-    strarray_push(arr, format("%s/crtbegin.o", gcc_libpath));
+    strarray_push(arr, format("%s/crt1.o", libpath.c_str()));
+    strarray_push(arr, format("%s/crti.o", libpath.c_str()));
+    strarray_push(arr, format("%s/crtbegin.o", gcc_libpath.c_str()));
   }
 
-  strarray_push(arr, format("-L%s", gcc_libpath));
+  strarray_push(arr, format("-L%s", gcc_libpath.c_str()));
   strarray_push(arr, "-L/usr/lib/x86_64-linux-gnu");
   strarray_push(arr, "-L/usr/lib64");
   strarray_push(arr, "-L/lib64");
@@ -681,11 +682,11 @@ static void run_linker(StringArray& inputs, const std::string output) {
   }
 
   if (opt_shared)
-    strarray_push(arr, format("%s/crtendS.o", gcc_libpath));
+    strarray_push(arr, format("%s/crtendS.o", gcc_libpath.c_str()));
   else
-    strarray_push(arr, format("%s/crtend.o", gcc_libpath));
+    strarray_push(arr, format("%s/crtend.o", gcc_libpath.c_str()));
 
-  strarray_push(arr, format("%s/crtn.o", libpath));
+  strarray_push(arr, format("%s/crtn.o", libpath.c_str()));
   strarray_push(arr, NULL);
 
   std::vector<char*> cargs;
@@ -712,10 +713,10 @@ static FileType get_file_type(std::string filename) {
   if (endswith(filename, ".s"))
     return FILE_ASM;
 
-  error("<command line>: unknown file extension: %s", filename);
+  error(format("<command line>: unknown file extension: %s", filename.c_str()));
 }
 
-int main(int argc, std::string *argv) {
+int main(int argc, char** argv) {
   atexit(cleanup);
   init_macros();
   parse_args(argc, argv);
@@ -726,7 +727,7 @@ int main(int argc, std::string *argv) {
     return 0;
   }
 
-  if (input_paths.size() > 1 && opt_o && (opt_c || opt_S | opt_E))
+  if (input_paths.size() > 1 && !opt_o.empty() && (opt_c || opt_S | opt_E))
     error("cannot specify '-o' with '-c,' '-S' or '-E' with multiple files");
 
   StringArray ld_args = {};
@@ -741,7 +742,7 @@ int main(int argc, std::string *argv) {
 
     if (input.compare(0, 4, "-Wl")==0) {
       std::string s = strdup(input.data() + 4);
-      std::string arg = strtok(s, ",");
+      char* arg = strtok(s.data(), ",");
       while (arg) {
         strarray_push(ld_args, arg);
         arg = strtok(NULL, ",");
@@ -750,7 +751,7 @@ int main(int argc, std::string *argv) {
     }
 
     std::string output;
-    if (opt_o)
+    if (!opt_o.empty())
       output = opt_o;
     else if (opt_S)
       output = replace_extn(input.data(), ".s");
@@ -768,7 +769,7 @@ int main(int argc, std::string *argv) {
     // Handle .s
     if (type == FILE_ASM) {
       if (!opt_S)
-        assemble(input.data(), output);
+        assemble(input, output);
       continue;
     }
 
@@ -804,6 +805,6 @@ int main(int argc, std::string *argv) {
   }
 
   if (ld_args.size() > 0)
-    run_linker(ld_args, opt_o ? opt_o : "a.out");
+    run_linker(ld_args, !opt_o.empty() ? opt_o : "a.out");
   return 0;
 }

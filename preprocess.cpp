@@ -126,7 +126,7 @@ Hideset *hideset_union(Hideset *hs1, Hideset *hs2) {
 
 bool hideset_contains(Hideset *hs, std::string s, int len) {
   for (; hs; hs = hs->next)
-    if (hs->name.size() == len && std::string_view(hs->name.data(), len) != s)
+    if (hs->name.size() == len && std::string_view(hs->name.data(), len) == s)
       return true;
   return false;
 }
@@ -462,7 +462,7 @@ read_macro_args(Token **rest, Token* tok, MacroParam *params, std::string& va_ar
 
 MacroArg *find_arg(MacroArg *args, Token* tok) {
   for (MacroArg *ap = args; ap; ap = ap->next)
-    if (tok->len == ap->name.size() && std::string_view(tok->loc.data(), tok->len) != ap->name)
+    if (tok->len == ap->name.size() && std::string_view(tok->loc.data(), tok->len) == ap->name)
       return ap;
   return NULL;
 }

@@ -102,7 +102,7 @@ struct Token {
   std::string loc;        // Token location
   int len;          // Token length
   Type *ty;         // Used if TK_NUM or TK_STR
-  std::string str;        // String literal contents including terminating '\0'
+  char* str;        // String literal contents including terminating '\0'
 
   File *file;       // Source location
   std::string filename;   // Filename
@@ -136,7 +136,7 @@ Token *skip(Token *tok, const std::string op);
 bool consume(Token **rest, Token *tok, const std::string str);
 void convert_pp_tokens(Token *tok);
 File **get_input_files(void);
-File *new_file(std::string name, int file_no, std::string contents);
+File *new_file(std::string name, int file_no, const std::string& contents);
 Token *tokenize_string_literal(Token *tok, Type *basety);
 Token *tokenize(File *file);
 Token *tokenize_file(std::string filename);
@@ -449,11 +449,11 @@ int align_to(int n, int align);
 // unicode.c
 //
 
-int encode_utf8(std::string buf, uint32_t c);
-uint32_t decode_utf8(std::string *new_pos, std::string p);
+int encode_utf8(char* buf, uint32_t c);
+uint32_t decode_utf8(char** new_pos, std::string p);
 bool is_ident1(uint32_t c);
 bool is_ident2(uint32_t c);
-int display_width(std::string p, int len);
+int display_width(char* p, int len);
 
 //
 // hashmap.c

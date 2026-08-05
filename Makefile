@@ -1,4 +1,4 @@
-CFLAGS=-std=c++20 -g -ferror-limit=0 -fno-common -Wall -Wextra -Wno-switch
+CXXFLAGS = -std=c++20 -g -ferror-limit=0 -fno-common -Wall -Wextra -Wno-switch
 
 SRCS=$(wildcard *.cpp)
 OBJS=$(SRCS:.cpp=.o)
@@ -11,7 +11,7 @@ CC = g++
 # Stage 1
 
 opencc: $(OBJS)
-	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+	$(CC) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 
 $(OBJS): opencc.h
 
@@ -28,7 +28,7 @@ test-all: test test-stage2
 # Stage 2
 
 stage2/opencc: $(OBJS:%=stage2/%)
-	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+	$(CC) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 
 stage2/%.o: opencc %.cpp
 	mkdir -p stage2/test
