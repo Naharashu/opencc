@@ -95,7 +95,7 @@ Token *skip_line(Token* tok) {
 }
 
 Token *copy_token(Token* tok) {
-  Token *t = new Token();
+  Token *t = Arena.alloc<Token>();
   *t = *tok;
   t->next = nullptr;
   return t;
@@ -109,7 +109,7 @@ Token *new_eof(Token* tok) {
 }
 
 Hideset *new_hideset(const std::string& name) {
-  Hideset *hs = new Hideset();
+  Hideset *hs = Arena.alloc<Hideset>();
   hs->name = name;
   return hs;
 }
@@ -211,16 +211,16 @@ std::string quote_string(std::string str) {
     bufsize++;
   }
 
-  std::string buf = (char*)calloc(1, bufsize);
-  std::string p = buf;
-  p += '"';
+  std::string buf;
+  buf.reserve(bufsize);
+  buf += '"';
   for (int i = 0; str[i]; i++) {
     if (str[i] == '\\' || str[i] == '"')
-      p += '\\';
-    p += str[i];
+      buf += '\\';
+    buf += str[i];
   }
-  p += '"';
-  p += '\0';
+  buf += '"';
+  buf += '\0';
   return buf;
 }
 
@@ -314,7 +314,7 @@ long eval_const_expr(Token **rest, Token* tok) {
 }
 
 CondIncl *push_cond_incl(Token* tok, bool included) {
-  CondIncl *ci = new CondIncl();
+  CondIncl *ci = Arena.alloc<CondIncl>();
   ci->next = cond_incl;
   ci->ctx = IN_THEN;
   ci->tok = tok;
@@ -480,18 +480,18 @@ std::string join_tokens(Token* tok, Token *end) {
   //std::string buf = calloc(1, len);
   std::string buf;
   buf.reserve(len);
+  buf.resize(len);
 
   // Copy token texts.
   int pos = 0;
   for (Token *t = tok; t != end && t->kind != TK_EOF; t = t->next) {
     if (t != tok && t->has_space)
       buf[pos++] = ' ';
-    strncpy(buf.data() + pos, t->loc.c_str(), t->len);
+    memcpy(&buf[pos], t->loc.data(), t->len);
     pos += t->len;
   }
-  buf[pos] = '\0';
-  char* r = buf.data();
-  return r;
+
+  return buf;
 }
 
 // Concatenates all tokens in `arg` and returns a new string token.
@@ -698,9 +698,12 @@ std::string search_include_paths(std::string filename) {
     return filename;
 
   HashMap cache;
-  std::string cached = *static_cast<std::string*>(hashmap_get(cache, filename));
-  if (!cached.empty())
-    return cached;
+  void *cached_ptr = hashmap_get(cache, filename);
+  if (cached_ptr) {
+    std::string cached = *static_cast<std::string*>(cached_ptr);
+    if (!cached.empty())
+      return cached;
+  }
 
   // Search a file from the include paths.
   for (int i = 0; i < include_paths.size(); i++) {
@@ -812,18 +815,19 @@ Token *include_file(Token* tok, std::string& path, Token *filename_tok) {
   // If we read the same file before, and if the file was guarded
   // by the usual #ifndef ... #endif pattern, we may be able to
   // skip the file without opening it.
-  HashMap include_guards;
-  std::string guard_name = *static_cast<std::string*>(hashmap_get(include_guards, path));
-  if (!guard_name.empty() && hashmap_get(macros, guard_name))
+  static HashMap include_guards;
+  auto* guard_name = static_cast<std::string*>(hashmap_get(include_guards, path));
+  if (guard_name && !guard_name->empty() && hashmap_get(macros, *guard_name))
     return tok;
 
   Token *tok2 = tokenize_file(path);
   if (!tok2)
     error_tok(*filename_tok, "%s: cannot open file: %s", path, strerror(errno));
 
-  guard_name = detect_include_guard(tok2);
-  if (!guard_name.empty())
-    hashmap_put(include_guards, path, &guard_name);
+  auto guard = Arena.alloc<std::string>(detect_include_guard(tok2));
+  if (!guard->empty()) {
+    hashmap_put(include_guards, path, guard);
+  }
 
   return append(tok2, tok);
 }
@@ -1071,7 +1075,7 @@ std::string format_time() {
 
 void init_macros() {
   // Define predefined macros
-   ("_LP64", "1");
+  define_macro("_LP64", "1");
   define_macro("__C99_MACRO_WITH_VA_ARGS", "1");
   define_macro("__ELF__", "1");
   define_macro("__LP64__", "1");
@@ -1189,17 +1193,18 @@ void join_adjacent_string_literals(Token* tok) {
     for (Token *t = tok1->next; t != tok2; t = t->next)
       len = len + t->ty->array_len - 1;
 
-    std::vector<char> buf(static_cast<size_t>(tok1->ty->base->size*len));
+    size_t buf_size = static_cast<size_t>(tok1->ty->base->size * len);
+    char *buf = (char*)calloc(buf_size, 1);
 
     int i = 0;
     for (Token *t = tok1; t != tok2; t = t->next) {
-      memcpy(buf.data() + i, t->str, t->ty->size);
+      memcpy(buf + i, t->str, t->ty->size);
       i = i + t->ty->size - t->ty->base->size;
     }
 
     *tok1 = *copy_token(tok1);
     tok1->ty = array_of(tok1->ty->base, len);
-    tok1->str = buf.data();
+    tok1->str = buf;
     tok1->next = tok2;
     tok1 = tok2;
   }

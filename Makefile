@@ -1,4 +1,4 @@
-CXXFLAGS = -std=c++20 -g -ferror-limit=0 -fno-common -Wall -Wextra -Wno-switch
+CXXFLAGS = -std=c++20 -g -ferror-limit=0 -fno-common -Wall -Wextra -Wno-switch -g -O0
 
 SRCS=$(wildcard *.cpp)
 OBJS=$(SRCS:.cpp=.o)

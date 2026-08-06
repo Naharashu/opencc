@@ -9,6 +9,7 @@ typedef enum {
 
 
 
+
 StringArray include_paths;
 bool opt_fcommon = true;
 bool opt_fpic;
@@ -89,7 +90,8 @@ static FileType parse_opt_x(std::string s) {
 }
 
 static std::string quote_makefile(std::string s) {
-  std::string buf = new char[s.size() * 2 + 1]();
+  std::string buf; 
+  buf.resize(s.size() * 2 + 1);
 
   for (int i = 0, j = 0; s[i]; i++) {
     switch (s[i]) {
@@ -346,7 +348,7 @@ static void parse_args(int argc, char** argv) {
   for (int i = 0; i < idirafter.size(); i++)
     strarray_push(include_paths, idirafter.at(i).c_str());
 
-  if (input_paths.size() == 0)
+  if (!opt_cc1 && input_paths.size() == 0)
     error("no input files");
 
   // -E implies that the input is the C macro language.
@@ -355,7 +357,7 @@ static void parse_args(int argc, char** argv) {
 }
 
 static FILE *open_file(const std::string path) {
-  if (!path.empty() || strcmp(path.c_str(), "-") == 0)
+  if (path.empty() || path == "-")
     return stdout;
 
   FILE *out = fopen(path.c_str(), "w");
@@ -383,7 +385,7 @@ static void cleanup() {
 }
 
 static std::string create_tmpfile() {
-  std::string path = strdup("/tmp/chibicc-XXXXXX");
+  std::string path = strdup("/tmp/opencc-XXXXXX");
   int fd = mkstemp(path.data());
   if (fd == -1)
     error(format("mkstemp failed: %s", strerror(errno)));
@@ -406,33 +408,44 @@ static void run_subprocess(char** argv) {
     // Child process. Run a new command.
     execvp(argv[0], argv);
     fprintf(stderr, "exec failed: %s: %s\n", argv[0], strerror(errno));
+    Arena.reset();
     _exit(1);
   }
 
   // Wait for the child process to finish.
   int status;
   while (wait(&status) > 0);
-  if (status != 0)
+  if (status != 0) {
+    Arena.reset();
     exit(1);
+  }
 }
 
 static void run_cc1(int argc, char** argv, std::string input, std::string output) {
-  //std::string *args = new char*[argc+10]();
-  std::vector<std::string> args(argc+10);
-  memcpy((void*)args.data(), (void*)argv, argc * sizeof(std::string ));
-  args[argc++] = "-cc1";
+  std::vector<std::string> args;
+  args.reserve(argc + 10);
+
+  for (int i = 0; i < argc; i++)
+    args.emplace_back(argv[i]);
+  args.emplace_back("-cc1");
 
   if (!input.empty()) {
-    args[argc++] = "-cc1-input";
-    args[argc++] = input;
+    args.emplace_back("-cc1-input");
+    args.emplace_back(input);
   }
 
   if (!output.empty()) {
-    args[argc++] = "-cc1-output";
-    args[argc++] = output;
+    args.emplace_back("-cc1-output");
+    args.emplace_back(output);
   }
 
-  run_subprocess((char**)args.data());
+  std::vector<char*> cargs;
+  cargs.reserve(args.size() + 1);
+  for (auto& s : args)
+    cargs.push_back(s.data());
+  cargs.push_back(nullptr);
+
+  run_subprocess(cargs.data());
 }
 
 // Print tokens to stdout. Used for -E.
@@ -687,7 +700,6 @@ static void run_linker(StringArray& inputs, const std::string output) {
     strarray_push(arr, format("%s/crtend.o", gcc_libpath.c_str()));
 
   strarray_push(arr, format("%s/crtn.o", libpath.c_str()));
-  strarray_push(arr, nullptr);
 
   std::vector<char*> cargs;
   for (auto& s : arr)

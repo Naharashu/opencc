@@ -17,9 +17,11 @@
 // parser.
 
 #include "opencc.h"
+#include <cstddef>
 #include <cstdint>
 #include <utility>
 #include <sys/types.h>
+
 
 // Scope for local variables, global variables, typedefs
 // or enum constants
@@ -83,6 +85,8 @@ struct InitDesg {
   Obj *var;
 };
 
+
+
 // All local variable instances created during parsing are
 // accumulated to this list.
 Obj *locals;
@@ -90,7 +94,7 @@ Obj *locals;
 // Likewise, global variables are accumulated to this list.
 Obj *globals;
 
-Scope *scope = new Scope;
+Scope *scope = Arena.alloc<Scope>();
 
 // Points to the function object the parser is currently parsing.
 Obj *current_fn;
@@ -164,7 +168,7 @@ int align_down(int n, int align) {
 }
 
 void enter_scope() {
-  Scope *sc = (Scope*)calloc(1, sizeof(Scope));
+  Scope *sc = Arena.alloc<Scope>();
   sc->next = scope;
   scope = sc;
 }
@@ -193,7 +197,7 @@ Type *find_tag(Token *tok) {
 }
 
 Node *new_node(NodeKind kind, Token *tok) {
-  Node *node = (Node*)calloc(1, sizeof(Node));
+  Node *node = Arena.alloc<Node>();
   node->kind = kind;
   node->tok = tok;
   return node;
@@ -247,7 +251,7 @@ Node *new_vla_ptr(Obj *var, Token *tok) {
 Node *new_cast(Node *expr, Type *ty) {
   add_type(expr);
 
-  Node *node = (Node*)calloc(1, sizeof(Node));
+  Node *node = Arena.alloc<Node>();
   node->kind = ND_CAST;
   node->tok = expr->tok;
   node->lhs = expr;
@@ -256,13 +260,13 @@ Node *new_cast(Node *expr, Type *ty) {
 }
 
 VarScope *push_scope(const std::string& name) {
-  VarScope *sc = (VarScope*)calloc(1, sizeof(VarScope));
+  VarScope *sc = new VarScope;
   hashmap_put(scope->vars, name, sc);
   return sc;
 }
 
 Initializer *new_initializer(Type *ty, bool is_flexible) {
-  Initializer *init = (Initializer*)calloc(1, sizeof(Initializer));
+  Initializer *init = new Initializer;
   init->ty = ty;
 
   if (ty->kind == TY_ARRAY) {
@@ -271,7 +275,7 @@ Initializer *new_initializer(Type *ty, bool is_flexible) {
       return init;
     }
 
-    init->children = (Initializer**)calloc(ty->array_len, sizeof(Initializer *));
+    init->children = new Initializer*[ty->array_len]();
     for (int i = 0; i < ty->array_len; i++)
       init->children[i] = new_initializer(ty->base, false);
     return init;
@@ -283,11 +287,11 @@ Initializer *new_initializer(Type *ty, bool is_flexible) {
     for (Member *mem = ty->members; mem; mem = mem->next)
       len++;
 
-    init->children = (Initializer**)calloc(len, sizeof(Initializer *));
+    init->children = new Initializer*[len]();
 
     for (Member *mem = ty->members; mem; mem = mem->next) {
       if (is_flexible && ty->is_flexible && !mem->next) {
-        Initializer *child = (Initializer*)calloc(1, sizeof(Initializer));
+        Initializer *child = new Initializer();
         child->ty = mem->ty;
         child->is_flexible = true;
         init->children[mem->idx] = child;
@@ -302,7 +306,7 @@ Initializer *new_initializer(Type *ty, bool is_flexible) {
 }
 
 Obj *new_var(std::string& name, Type *ty) {
-  Obj *var = (Obj*)calloc(1, sizeof(Obj));
+  Obj *var = new Obj;
   var->name = name;
   var->ty = ty;
   var->align = ty->align;
@@ -328,7 +332,7 @@ Obj *new_gvar(std::string name, Type *ty) {
 }
 
 std::string new_unique_name() {
-  int id = 0;
+  static int id = 0;
   return format(".L..%d", id++);
 }
 
@@ -345,7 +349,7 @@ Obj *new_string_literal(std::string p, Type *ty) {
 std::string get_ident(Token *tok) {
   if (tok->kind != TK_IDENT)
     error_tok(*tok, "expected an identifier");
-  return std::string(tok->loc, tok->len);
+  return tok->loc.substr(0, tok->len);
 }
 
 Type *find_typedef(Token *tok) {
@@ -505,9 +509,10 @@ Type *declspec(Token **rest, Token *tok, VarAttr *attr) {
       counter |= SIGNED;
     else if (equal(tok, "unsigned"))
       counter |= UNSIGNED;
-    else
+    else {
       std::cerr << "FATAL ERROR";
       std::abort();
+    }
 
     switch (counter) {
     case VOID:
@@ -1287,7 +1292,7 @@ Type *copy_struct_type(Type *ty) {
   Member head = {};
   Member *cur = &head;
   for (Member *mem = ty->members; mem; mem = mem->next) {
-    Member *m = (Member*)calloc(1, sizeof(Member));
+    Member *m = new Member();
     *m = *mem;
     cur = cur->next = m;
   }
@@ -1400,7 +1405,7 @@ uint64_t read_buf(char* buf, int sz) {
   if (sz == 4)
     return *reinterpret_cast<uint32_t*>(buf);
   if (sz == 8)
-    return *reinterpret_cast<uint16_t*>(buf);
+    return *reinterpret_cast<uint64_t*>(buf);
   unreachable();
 }
 
@@ -1475,7 +1480,7 @@ Relocation *write_gvar_data(Relocation *cur, Initializer *init, Type *ty, char* 
     return cur;
   }
 
-  Relocation *rel = (Relocation*)calloc(1, sizeof(Relocation));
+  Relocation *rel = new Relocation();
   rel->offset = offset;
   rel->label = label;
   rel->addend = static_cast<long>(val);
@@ -1491,7 +1496,7 @@ void gvar_initializer(Token **rest, Token *tok, Obj *var) {
   Initializer *init = initializer(rest, tok, var->ty, &var->ty);
 
   Relocation head = {};
-  std::string buf(1, var->ty->size);
+  std::string buf(var->ty->size, '\0');
   write_gvar_data(&head, init, var->ty, buf.data(), 0);
   var->init_data = buf;
   var->rel = head.next;
@@ -1499,7 +1504,7 @@ void gvar_initializer(Token **rest, Token *tok, Obj *var) {
 
 // Returns true if a given token represents a type.
 bool is_type_name(Token *tok) {
-  HashMap map;
+  static HashMap map;
 
   if (map.empty()) {
     std::string kw[] = {
@@ -2559,7 +2564,7 @@ void struct_members(Token **rest, Token *tok, Type *ty) {
     // Anonymous struct member
     if ((basety->kind == TY_STRUCT || basety->kind == TY_UNION) &&
         consume(&tok, tok, ";")) {
-      Member *mem = (Member*)calloc(1, sizeof(Member));
+      Member *mem = new Member();
       mem->ty = basety;
       mem->idx = idx++;
       mem->align = attr.align ? attr.align : mem->ty->align;
@@ -2573,7 +2578,7 @@ void struct_members(Token **rest, Token *tok, Type *ty) {
         tok = skip(tok, ",");
       first = false;
 
-      Member *mem = (Member*)calloc(1, sizeof(Member));
+      Member *mem = new Member();
       mem->ty = declarator(&tok, tok, basety);
       mem->name = mem->ty->name;
       mem->idx = idx++;

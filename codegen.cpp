@@ -17,10 +17,10 @@ static Obj *current_fn;
 static void gen_expr(Node *node);
 static void gen_stmt(Node *node);
 
-static void println(const std::string fmt, ...) {
+static void println(const char *fmt, ...) {
   va_list ap;
-  va_start(ap, fmt.data());
-  vfprintf(output_file, fmt.c_str(), ap);
+  va_start(ap, fmt);
+  vfprintf(output_file, fmt, ap);
   va_end(ap);
   fprintf(output_file, "\n");
 }

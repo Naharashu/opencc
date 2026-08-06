@@ -35,7 +35,7 @@ Type *ty_double = &ty_double_obj;
 Type *ty_ldouble = &ty_ldouble_obj;
 
 static Type *new_type(TypeKind kind, int size, int align) {
-  Type *ty = (Type*)calloc(1, sizeof(Type));
+  Type *ty = new Type;
   ty->kind = kind;
   ty->size = size;
   ty->align = align;
@@ -105,7 +105,7 @@ bool is_compatible(Type *t1, Type *t2) {
 }
 
 Type *copy_type(Type *ty) {
-  Type *ret = (Type*)calloc(1, sizeof(Type));
+  Type *ret = new Type;
   *ret = *ty;
   ret->origin = ty;
   return ret;

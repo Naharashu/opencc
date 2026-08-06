@@ -17,6 +17,7 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include "include/thirdparty/arena-alloc/include/arena_alloc.h"
 
 #define MAX(x, y) ((x) < (y) ? (y) : (x))
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
@@ -31,14 +32,14 @@ typedef struct Member Member;
 typedef struct Relocation Relocation;
 typedef struct Hideset Hideset;
 
-inline std::string format(const std::string& fmt, ...) {
+inline std::string format(const char *fmt, ...) {
   char* buf;
   size_t buflen;
   FILE *out = open_memstream(&buf, &buflen);
 
   va_list ap;
-  va_start(ap, fmt.c_str());
-  vfprintf(out, fmt.c_str(), ap);
+  va_start(ap, fmt);
+  vfprintf(out, fmt, ap);
   va_end(ap);
   fclose(out);
   return buf;
@@ -114,12 +115,16 @@ struct Token {
   Token *origin;    // If this is expanded from a macro, the original token
 };
 
+// Init of Arena
+
+static arena::Arena Arena(static_cast<long>(1024)*4); // 4KB
+
 [[noreturn]] inline void error(const std::string& fmt) {
-  std::cerr << fmt;
+  std::cerr << fmt << '\n';
   throw std::runtime_error("");
 }
 [[noreturn]] inline void error_at(const std::string& loc, const std::string& fmt) {
-  std::cerr << loc << '\n' << fmt; 
+  std::cerr << loc << '\n' << fmt << '\n'; 
   throw std::runtime_error("");
 }
 [[noreturn]] inline void error_tok(Token& tok, const std::string& fmt, const std::string& fmt2="", const std::string& fmt3="") {
@@ -131,11 +136,10 @@ void inline warn_tok(Token& tok, const std::string& fmt) {
   std::cerr << tok.filename << ":" << tok.line_no << ": warning: "
   << fmt << '\n';
 }
-bool equal(Token *tok, const char* op);
-bool equal(Token *tok, const std::string& op);
-Token *skip(Token *tok, const char* op);
+inline bool equal(Token *tok, const std::string& op) {
+  return tok->loc == op;
+}
 Token *skip(Token *tok, const std::string& op);
-bool consume(Token **rest, Token *tok, const char* str);
 bool consume(Token **rest, Token *tok, const std::string& str);
 void convert_pp_tokens(Token *tok);
 File **get_input_files(void);
@@ -335,7 +339,7 @@ Obj *parse(Token *tok);
 // type.c
 //
 
-typedef enum : uint8_t {
+using TypeKind = enum : uint8_t {
   TY_VOID,
   TY_BOOL,
   TY_CHAR,
@@ -352,7 +356,7 @@ typedef enum : uint8_t {
   TY_VLA, // variable-length array
   TY_STRUCT,
   TY_UNION,
-} TypeKind;
+};
 
 struct Type {
   TypeKind kind;
