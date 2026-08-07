@@ -1,6 +1,9 @@
 #include "opencc.h"
 #include <cassert>
+#include <cstdio>
+#include <cstdlib>
 #include <string>
+#include <unistd.h>
 #include <vector>
 
 typedef enum {
@@ -385,7 +388,7 @@ static void cleanup() {
 }
 
 static std::string create_tmpfile() {
-  std::string path = strdup("/tmp/opencc-XXXXXX");
+  std::string path = strdup("/tmp/chibicc-XXXXXX");
   int fd = mkstemp(path.data());
   if (fd == -1)
     error(format("mkstemp failed: %s", strerror(errno)));
@@ -403,12 +406,16 @@ static void run_subprocess(char** argv) {
       fprintf(stderr, " %s", argv[i]);
     fprintf(stderr, "\n");
   }
-
+  pid_t pid = fork();
+  if(pid<0) {
+    perror("fork");
+    exit(1);
+  }
   if (fork() == 0) {
     // Child process. Run a new command.
     execvp(argv[0], argv);
     fprintf(stderr, "exec failed: %s: %s\n", argv[0], strerror(errno));
-    Arena.reset();
+    arena.reset();
     _exit(1);
   }
 
@@ -416,7 +423,7 @@ static void run_subprocess(char** argv) {
   int status;
   while (wait(&status) > 0);
   if (status != 0) {
-    Arena.reset();
+    arena.reset();
     exit(1);
   }
 }

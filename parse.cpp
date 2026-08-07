@@ -94,7 +94,7 @@ Obj *locals;
 // Likewise, global variables are accumulated to this list.
 Obj *globals;
 
-Scope *scope = Arena.alloc<Scope>();
+Scope *scope = arena.create<Scope>();
 
 // Points to the function object the parser is currently parsing.
 Obj *current_fn;
@@ -168,7 +168,7 @@ int align_down(int n, int align) {
 }
 
 void enter_scope() {
-  Scope *sc = Arena.alloc<Scope>();
+  Scope *sc = arena.create<Scope>();
   sc->next = scope;
   scope = sc;
 }
@@ -197,7 +197,7 @@ Type *find_tag(Token *tok) {
 }
 
 Node *new_node(NodeKind kind, Token *tok) {
-  Node *node = Arena.alloc<Node>();
+  Node *node = arena.create<Node>();
   node->kind = kind;
   node->tok = tok;
   return node;
@@ -251,7 +251,7 @@ Node *new_vla_ptr(Obj *var, Token *tok) {
 Node *new_cast(Node *expr, Type *ty) {
   add_type(expr);
 
-  Node *node = Arena.alloc<Node>();
+  Node *node = arena.create<Node>();
   node->kind = ND_CAST;
   node->tok = expr->tok;
   node->lhs = expr;

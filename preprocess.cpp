@@ -95,7 +95,7 @@ Token *skip_line(Token* tok) {
 }
 
 Token *copy_token(Token* tok) {
-  Token *t = Arena.alloc<Token>();
+  Token *t = arena.create<Token>();
   *t = *tok;
   t->next = nullptr;
   return t;
@@ -109,7 +109,7 @@ Token *new_eof(Token* tok) {
 }
 
 Hideset *new_hideset(const std::string& name) {
-  Hideset *hs = Arena.alloc<Hideset>();
+  Hideset *hs = arena.create<Hideset>();
   hs->name = name;
   return hs;
 }
@@ -314,7 +314,7 @@ long eval_const_expr(Token **rest, Token* tok) {
 }
 
 CondIncl *push_cond_incl(Token* tok, bool included) {
-  CondIncl *ci = Arena.alloc<CondIncl>();
+  CondIncl *ci = arena.create<CondIncl>();
   ci->next = cond_incl;
   ci->ctx = IN_THEN;
   ci->tok = tok;
@@ -824,7 +824,7 @@ Token *include_file(Token* tok, std::string& path, Token *filename_tok) {
   if (!tok2)
     error_tok(*filename_tok, "%s: cannot open file: %s", path, strerror(errno));
 
-  auto guard = Arena.alloc<std::string>(detect_include_guard(tok2));
+  auto guard = arena.create<std::string>(detect_include_guard(tok2));
   if (!guard->empty()) {
     hashmap_put(include_guards, path, guard);
   }

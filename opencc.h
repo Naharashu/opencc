@@ -17,7 +17,7 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
-#include "include/thirdparty/arena-alloc/include/arena_alloc.h"
+#include "include/arena.h"
 
 #define MAX(x, y) ((x) < (y) ? (y) : (x))
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
@@ -117,20 +117,20 @@ struct Token {
 
 // Init of Arena
 
-static arena::Arena Arena(static_cast<long>(1024)*4); // 4KB
+static Arena arena(256ull*1024*1024); // 4GB mmap/virtualAlloc
 
 [[noreturn]] inline void error(const std::string& fmt) {
   std::cerr << fmt << '\n';
-  throw std::runtime_error("");
+  std::exit(1);
 }
 [[noreturn]] inline void error_at(const std::string& loc, const std::string& fmt) {
   std::cerr << loc << '\n' << fmt << '\n'; 
-  throw std::runtime_error("");
+  std::exit(1);
 }
 [[noreturn]] inline void error_tok(Token& tok, const std::string& fmt, const std::string& fmt2="", const std::string& fmt3="") {
   std::cerr << tok.filename << ":" << tok.line_no << ": error: "
   << fmt << fmt2 << fmt3 << '\n';
-  throw std::runtime_error("");
+  std::exit(1);
 }
 void inline warn_tok(Token& tok, const std::string& fmt) {
   std::cerr << tok.filename << ":" << tok.line_no << ": warning: "
