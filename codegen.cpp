@@ -1,5 +1,5 @@
 #include "opencc.h"
-#include "cassert"
+#include <cassert>
 
 #define GP_MAX 6
 #define FP_MAX 8
@@ -200,13 +200,13 @@ static void load(Type *ty) {
     // the first element of the array in C" occurs.
     return;
   case TY_FLOAT:
-    println("  movss (%%rax.c_str()), %%xmm0");
+    println("  movss (%%rax), %%xmm0");
     return;
   case TY_DOUBLE:
-    println("  movsd (%%rax.c_str()), %%xmm0");
+    println("  movsd (%%rax), %%xmm0");
     return;
   case TY_LDOUBLE:
-    println("  fldt (%%rax.c_str())");
+    println("  fldt (%%rax)");
     return;
   }
 
@@ -218,13 +218,13 @@ static void load(Type *ty) {
   // register for char, short and int may contain garbage. When we load
   // a long value to a register, it simply occupies the entire register.
   if (ty->size == 1)
-    println("  %sbl (%%rax.c_str()), %%eax", insn.c_str());
+    println("  %sbl (%%rax), %%eax", insn.c_str());
   else if (ty->size == 2)
-    println("  %swl (%%rax.c_str()), %%eax", insn.c_str());
+    println("  %swl (%%rax), %%eax", insn.c_str());
   else if (ty->size == 4)
-    println("  movsxd (%%rax.c_str()), %%rax");
+    println("  movsxd (%%rax), %%rax");
   else
-    println("  mov (%%rax.c_str()), %%rax");
+    println("  mov (%%rax), %%rax");
 }
 
 // Store %rax to an address that the stack top is pointing to.
@@ -235,7 +235,7 @@ static void store(Type *ty) {
   case TY_STRUCT:
   case TY_UNION:
     for (int i = 0; i < ty->size; i++) {
-      println("  mov %d(%%rax.c_str()), %%r8b", i);
+      println("  mov %d(%%rax), %%r8b", i);
       println("  mov %%r8b, %d(%%rdi)", i);
     }
     return;
@@ -450,7 +450,7 @@ static void push_struct(Type *ty) {
   depth += sz / 8;
 
   for (int i = 0; i < ty->size; i++) {
-    println("  mov %d(%%rax.c_str()), %%r10b", i);
+    println("  mov %d(%%rax), %%r10b", i);
     println("  mov %%r10b, %d(%%rsp)", i);
   }
 }
@@ -634,7 +634,7 @@ static void copy_struct_reg() {
   if (ty->size > 8) {
     if (has_flonum(ty, 8, 16, 0)) {
       assert(ty->size == 12 || ty->size == 16);
-      if (ty->size == 4)
+      if (ty->size - 8 == 4)
         println("  movss 8(%%rdi), %%xmm%d", fp);
       else
         println("  movsd 8(%%rdi), %%xmm%d", fp);
@@ -657,7 +657,7 @@ static void copy_struct_mem() {
   println("  mov %d(%%rbp), %%rdi", var->offset);
 
   for (int i = 0; i < ty->size; i++) {
-    println("  mov %d(%%rax.c_str()), %%dl", i);
+    println("  mov %d(%%rax), %%dl", i);
     println("  mov %%dl, %d(%%rdi)", i);
   }
 }
@@ -676,7 +676,7 @@ static void builtin_alloca() {
   println("1:");
   println("  cmp $0, %%rcx");
   println("  je 2f");
-  println("  mov (%%rax.c_str()), %%r8b");
+  println("  mov (%%rax), %%r8b");
   println("  mov %%r8b, (%%rdx)");
   println("  inc %%rdx");
   println("  inc %%rax");
@@ -692,10 +692,11 @@ static void builtin_alloca() {
 
 // Generate code for a given node.
 static void gen_expr(Node *node) {
+  std::cerr << node->tok->filename << ' ' << node->tok->file->file_no << '\n';
   println("  .loc %d %d", node->tok->file->file_no, node->tok->line_no);
 
   switch (node->kind) {
-  case ND_nullptr_EXPR:
+  case ND_NULL_EXPR:
     return;
   case ND_NUM: {
     switch (node->ty->kind) {
@@ -1189,6 +1190,7 @@ static void gen_expr(Node *node) {
 }
 
 static void gen_stmt(Node *node) {
+  std::cerr << node->tok->filename << ' ' << node->tok->file->file_no << '\n';
   println("  .loc %d %d", node->tok->file->file_no, node->tok->line_no);
 
   switch (node->kind) {
@@ -1398,7 +1400,7 @@ static void emit_data(Obj *prog) {
     }
 
     // .data or .tdata
-    if (var->init_data.c_str()) {
+    if (!var->init_data.empty()) {
       if (var->is_tls)
         println("  .section .tdata,\"awT\",@progbits");
       else
@@ -1590,7 +1592,9 @@ void codegen(Obj *prog, FILE *out) {
 
   File **files = get_input_files();
   for (int i = 0; files[i]; i++)
-    println("  .file %d \"%s\"", files[i]->file_no, files[i]->name.c_str());
+    if (files[i]->file_no > 0) {
+      println("  .file %d \"%s\"", files[i]->file_no, files[i]->name.c_str());
+    }
 
   assign_lvar_offsets(prog);
   emit_data(prog);

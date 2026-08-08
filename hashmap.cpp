@@ -11,7 +11,8 @@ void *hashmap_get(HashMap& map, const std::string& key) {
   return nullptr;
 }
 void *hashmap_get2(HashMap& map, const std::string& key, int keylen) {
-  return hashmap_get(map, key.substr(0, keylen));
+  std::string k = key.substr(0, keylen);
+  return hashmap_get(map, k);
 }
 void hashmap_put(HashMap& map, const std::string& key, void *val) {
   map[key] = val;

@@ -6,7 +6,7 @@
 #include <unistd.h>
 #include <vector>
 
-typedef enum {
+typedef enum : uint8_t {
   FILE_NONE, FILE_C, FILE_ASM, FILE_OBJ, FILE_AR, FILE_DSO,
 } FileType;
 
@@ -75,9 +75,9 @@ static void add_default_include_paths(std::string argv0) {
 }
 
 static void define(std::string str) {
-  std::string eq = strchr(str.c_str(), '=');
-  if (!eq.empty())
-    define_macro(strndup(str.data(), eq.data() - str.data()), eq.data() + 1);
+  const char *eq = strchr(str.c_str(), '=');
+  if (eq)
+    define_macro(strndup(str.data(), eq - str.data()), const_cast<char*>(eq + 1));
   else
     define_macro(str, "1");
 }
@@ -406,12 +406,14 @@ static void run_subprocess(char** argv) {
       fprintf(stderr, " %s", argv[i]);
     fprintf(stderr, "\n");
   }
+
   pid_t pid = fork();
-  if(pid<0) {
+  if (pid < 0) {
     perror("fork");
     exit(1);
   }
-  if (fork() == 0) {
+
+  if (pid == 0) {
     // Child process. Run a new command.
     execvp(argv[0], argv);
     fprintf(stderr, "exec failed: %s: %s\n", argv[0], strerror(errno));
@@ -419,10 +421,13 @@ static void run_subprocess(char** argv) {
     _exit(1);
   }
 
-  // Wait for the child process to finish.
   int status;
-  while (wait(&status) > 0);
-  if (status != 0) {
+  if (waitpid(pid, &status, 0) == -1) {
+    perror("waitpid");
+    exit(1);
+  }
+
+  if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
     arena.reset();
     exit(1);
   }

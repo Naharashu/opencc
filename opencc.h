@@ -137,7 +137,8 @@ void inline warn_tok(Token& tok, const std::string& fmt) {
   << fmt << '\n';
 }
 inline bool equal(Token *tok, const std::string& op) {
-  return tok->loc == op;
+  return (int)op.size() == tok->len && 
+         tok->loc.compare(0, tok->len, op) == 0;
 }
 Token *skip(Token *tok, const std::string& op);
 bool consume(Token **rest, Token *tok, const std::string& str);
@@ -215,7 +216,7 @@ struct Relocation {
 
 // AST node
 typedef enum : uint8_t {
-  ND_nullptr_EXPR, // Do nothing
+  ND_NULL_EXPR, // Do nothing
   ND_ADD,       // +
   ND_SUB,       // -
   ND_MUL,       // *

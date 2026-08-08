@@ -305,8 +305,8 @@ Initializer *new_initializer(Type *ty, bool is_flexible) {
   return init;
 }
 
-Obj *new_var(std::string& name, Type *ty) {
-  Obj *var = new Obj;
+Obj *new_var(const std::string& name, Type *ty) {
+  Obj *var = arena.create<Obj>();
   var->name = name;
   var->ty = ty;
   var->align = ty->align;
@@ -314,7 +314,7 @@ Obj *new_var(std::string& name, Type *ty) {
   return var;
 }
 
-Obj *new_lvar(std::string name, Type *ty) {
+Obj *new_lvar(const std::string& name, Type *ty) {
   Obj *var = new_var(name, ty);
   var->is_local = true;
   var->next = locals;
@@ -820,7 +820,7 @@ Type *typeof_specifier(Token **rest, Token *tok) {
 
 // Generate code for computing a VLA size.
 Node *compute_vla_size(Type *ty, Token *tok) {
-  Node *node = new_node(ND_nullptr_EXPR, tok);
+  Node *node = new_node(ND_NULL_EXPR, tok);
   if (ty->base)
     node = new_binary(ND_COMMA, node, compute_vla_size(ty->base, tok), tok);
 
@@ -1339,7 +1339,7 @@ Node *init_desg_expr(InitDesg *desg, Token *tok) {
 
 Node *create_lvar_init(Initializer *init, Type *ty, InitDesg *desg, Token *tok) {
   if (ty->kind == TY_ARRAY) {
-    Node *node = new_node(ND_nullptr_EXPR, tok);
+    Node *node = new_node(ND_NULL_EXPR, tok);
     for (int i = 0; i < ty->array_len; i++) {
       InitDesg desg2 = {desg, i};
       Node *rhs = create_lvar_init(init->children[i], ty->base, &desg2, tok);
@@ -1349,7 +1349,7 @@ Node *create_lvar_init(Initializer *init, Type *ty, InitDesg *desg, Token *tok) 
   }
 
   if (ty->kind == TY_STRUCT && !init->expr) {
-    Node *node = new_node(ND_nullptr_EXPR, tok);
+    Node *node = new_node(ND_NULL_EXPR, tok);
 
     for (Member *mem = ty->members; mem; mem = mem->next) {
       InitDesg desg2 = {desg, 0, mem};
@@ -1366,7 +1366,7 @@ Node *create_lvar_init(Initializer *init, Type *ty, InitDesg *desg, Token *tok) 
   }
 
   if (!init->expr)
-    return new_node(ND_nullptr_EXPR, tok);
+    return new_node(ND_NULL_EXPR, tok);
 
   Node *lhs = init_desg_expr(desg, tok);
   return new_binary(ND_ASSIGN, lhs, init->expr, tok);

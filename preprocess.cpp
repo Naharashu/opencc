@@ -356,13 +356,13 @@ MacroParam *read_macro_params(Token **rest, Token* tok, std::string va_args_name
       error_tok(*tok, "expected an identifier");
 
     if (equal(tok->next, "...")) {
-      va_args_name =  std::string(tok->loc, tok->len);
+      va_args_name =  std::string(tok->loc.data(), tok->len);
       *rest = skip(tok->next->next, ")");
       return head.next;
     }
 
       MacroParam *m = new MacroParam();
-    m->name = std::string(tok->loc, tok->len);
+    m->name = std::string(tok->loc.data(), tok->len);
     cur = cur->next = m;
     tok = tok->next;
   }
@@ -374,19 +374,16 @@ MacroParam *read_macro_params(Token **rest, Token* tok, std::string va_args_name
 void read_macro_definition(Token **rest, Token* tok) {
   if (tok->kind != TK_IDENT)
     error_tok(*tok, "macro name must be an identifier");
-  std::string name(tok->loc, tok->len);
+  std::string name(tok->loc.data(), tok->len);
   tok = tok->next;
 
   if (!tok->has_space && equal(tok, "(")) {
-    // Function-like macro
-    std::string va_args_name = nullptr;
+    std::string va_args_name;
     MacroParam *params = read_macro_params(&tok, tok->next, va_args_name);
-
     Macro *m = add_macro(name, false, copy_line(rest, tok));
     m->params = params;
     m->va_args_name = va_args_name;
   } else {
-    // Object-like macro
     add_macro(name, true, copy_line(rest, tok));
   }
 }
@@ -508,8 +505,8 @@ Token *stringize(Token *hash, Token *arg) {
 Token *paste(Token& lhs, Token& rhs) {
   // Paste the two tokens.
   std::string buf;
-  buf.append(lhs.loc, lhs.len);
-  buf.append(rhs.loc, rhs.len);
+  buf.append(lhs.loc.data(), lhs.len);
+  buf.append(rhs.loc.data(), rhs.len);
 
   // Tokenize the resulting string.
   Token *tok = tokenize(new_file(lhs.file->name, lhs.file->file_no, buf));
@@ -697,7 +694,7 @@ std::string search_include_paths(std::string filename) {
   if (filename[0] == '/')
     return filename;
 
-  HashMap cache;
+  static HashMap cache;
   void *cached_ptr = hashmap_get(cache, filename);
   if (cached_ptr) {
     std::string cached = *static_cast<std::string*>(cached_ptr);
@@ -710,7 +707,8 @@ std::string search_include_paths(std::string filename) {
     std::string path = include_paths.at(i) + '/' + filename;
     if (!file_exists(path))
       continue;
-    hashmap_put(cache, filename, &path);
+    auto *stored = arena.create<std::string>(path);
+    hashmap_put(cache, filename, stored);
     include_next_idx = i + 1;
     return path;
   }
@@ -804,7 +802,7 @@ std::string detect_include_guard(Token* tok) {
     else
       tok = tok->next;
   }
-  return nullptr;
+  return std::string();
 }
 
 Token *include_file(Token* tok, std::string& path, Token *filename_tok) {
@@ -822,7 +820,7 @@ Token *include_file(Token* tok, std::string& path, Token *filename_tok) {
 
   Token *tok2 = tokenize_file(path);
   if (!tok2)
-    error_tok(*filename_tok, "%s: cannot open file: %s", path, strerror(errno));
+    error_tok(*filename_tok, format("%s: cannot open file: %s", path.c_str(), strerror(errno)));
 
   auto guard = arena.create<std::string>(detect_include_guard(tok2));
   if (!guard->empty()) {
@@ -907,7 +905,7 @@ Token *preprocess2(Token* tok) {
       tok = tok->next;
       if (tok->kind != TK_IDENT)
         error_tok(*tok, "macro name must be an identifier");
-      undef_macro(std::string(tok->loc, tok->len));
+      undef_macro(std::string(tok->loc.data(), tok->len));
       tok = skip_line(tok->next);
       continue;
     }
@@ -1036,7 +1034,7 @@ Token *line_macro(Token *tmpl) {
 
 // __COUNTER__ is expanded to serial values starting from 0.
 Token *counter_macro(Token *tmpl) {
-  int i = 0;
+  static int i = 0;
   return new_num_token(i++, tmpl);
 }
 

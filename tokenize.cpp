@@ -50,7 +50,9 @@ static void verror_at(const char* filename, char* input, int line_no,
 
 // Consumes the current token if it matches `op`.
 bool equal(Token *tok, const char* op) {
-  return memcmp(tok->loc.data(), op, tok->len) == 0 && op[tok->len] == '\0';
+  size_t len = strlen(op);
+  return tok->len == static_cast<int>(len) &&
+         memcmp(tok->loc.data(), op, len) == 0;
 }
 
 
@@ -663,7 +665,7 @@ File *new_file(std::string name, int file_no, const std::string& contents) {
 }
 
 // Replaces \r or \r\n with \n.
-static void canonicalize_newline(std::string p) {
+static void canonicalize_newline(char* p) {
   int i = 0, j = 0;
 
   while (p[i]) {
@@ -682,7 +684,7 @@ static void canonicalize_newline(std::string p) {
 }
 
 // Removes backslashes followed by a newline.
-static void remove_backslash_newline(std::string p) {
+static void remove_backslash_newline(char* p) {
   int i = 0, j = 0;
 
   // We want to keep the number of newline characters so that
@@ -762,7 +764,8 @@ Token *tokenize_file(std::string path) {
   // texts, but it's not uncommon particularly on Windows.)
   if (!memcmp(p, "\xef\xbb\xbf", 3))
     p += 3;
-
+  
+  
   canonicalize_newline(p);
   remove_backslash_newline(p);
   convert_universal_chars(p);
@@ -771,9 +774,15 @@ Token *tokenize_file(std::string path) {
   static int file_no;
   File *file = new_file(path, file_no + 1, p);
 
-  // Save the filename for assembler .file directive.
-  input_files = new File*[sizeof(File*) * (file_no + 2)]();
-  //static_cast<File**>(realloc(input_files, sizeof(File*) * (file_no + 2)));
+  // Preserve the existing list of input files so we can emit .file
+  // directives for all files seen during compilation.
+  File **old_files = input_files;
+  input_files = new File*[file_no + 2]();
+  if (old_files) {
+    memcpy(input_files, old_files, sizeof(File*) * file_no);
+    delete[] old_files;
+  }
+
   input_files[file_no] = file;
   input_files[file_no + 1] = nullptr;
   file_no++;
