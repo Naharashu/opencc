@@ -294,7 +294,7 @@ static void parse_args(int argc, char** argv) {
     }
 
     if (!strcmp(argv[i], "-idirafter")) {
-      strarray_push(idirafter, argv[i++]);
+      strarray_push(idirafter, argv[++i]);
       continue;
     }
 
@@ -376,9 +376,9 @@ inline bool endswith(const std::string& p, const std::string& q) {
 // Replace file extension
 static std::string replace_extn(std::string tmpl, std::string extn) {
   std::string filename = basename(strdup(tmpl.c_str()));
-  char* dot = const_cast<char*>(strrchr(filename.c_str(), '.'));
-  if (dot)
-    *dot = '\0';
+  auto dot = filename.rfind('.');
+  if (dot != std::string::npos)
+    filename.resize(dot);
   return format("%s%s", filename.c_str(), extn.c_str());
 }
 
@@ -493,8 +493,11 @@ static void print_dependencies() {
   std::string path;
   if (!opt_MF.empty())
     path = opt_MF;
-  else if (opt_MD)
-    path = replace_extn(opt_o.c_str() ? opt_o.c_str() : base_file.c_str(), ".d");
+  else if (opt_MD) {
+    std::string dir = dirname(strdup(base_file.c_str()));
+    std::string name = replace_extn(base_file.c_str(), ".d");
+    path = (dir == ".") ? name : dir + "/" + name;
+  }
   else if (!opt_o.empty())
     path = opt_o;
   else
@@ -544,6 +547,7 @@ static Token *append_tokens(Token *tok1, Token *tok2) {
 }
 
 static void cc1() {
+  strarray_push(include_paths, dirname(strdup(base_file.c_str())));
   Token *tok = nullptr;
 
   // Process -include option
@@ -751,7 +755,7 @@ int main(int argc, char** argv) {
     return 0;
   }
 
-  if (input_paths.size() > 1 && !opt_o.empty() && (opt_c || opt_S | opt_E))
+  if (input_paths.size() > 1 && !opt_o.empty() && (opt_c || opt_S || opt_E))
     error("cannot specify '-o' with '-c,' '-S' or '-E' with multiple files");
 
   StringArray ld_args = {};

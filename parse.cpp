@@ -260,13 +260,13 @@ Node *new_cast(Node *expr, Type *ty) {
 }
 
 VarScope *push_scope(const std::string& name) {
-  VarScope *sc = new VarScope;
+  VarScope *sc = arena.create<VarScope>();
   hashmap_put(scope->vars, name, sc);
   return sc;
 }
 
 Initializer *new_initializer(Type *ty, bool is_flexible) {
-  Initializer *init = new Initializer;
+  Initializer *init = arena.create<Initializer>();
   init->ty = ty;
 
   if (ty->kind == TY_ARRAY) {
@@ -275,7 +275,8 @@ Initializer *new_initializer(Type *ty, bool is_flexible) {
       return init;
     }
 
-    init->children = new Initializer*[ty->array_len]();
+    init->children = static_cast<Initializer**>(arena.alloc<Initializer*>(ty->array_len*sizeof(Initializer*), alignof(Initializer*)));
+    // new Initializer*[ty->array_len]();
     for (int i = 0; i < ty->array_len; i++)
       init->children[i] = new_initializer(ty->base, false);
     return init;
@@ -287,11 +288,12 @@ Initializer *new_initializer(Type *ty, bool is_flexible) {
     for (Member *mem = ty->members; mem; mem = mem->next)
       len++;
 
-    init->children = new Initializer*[len]();
+    init->children = static_cast<Initializer**>(arena.alloc<Initializer*>(sizeof(Initializer*)*len, alignof(Initializer*)));
+    // new Initializer*[len]();
 
     for (Member *mem = ty->members; mem; mem = mem->next) {
       if (is_flexible && ty->is_flexible && !mem->next) {
-        Initializer *child = new Initializer();
+        Initializer *child = arena.create<Initializer>();
         child->ty = mem->ty;
         child->is_flexible = true;
         init->children[mem->idx] = child;
@@ -1292,7 +1294,7 @@ Type *copy_struct_type(Type *ty) {
   Member head = {};
   Member *cur = &head;
   for (Member *mem = ty->members; mem; mem = mem->next) {
-    Member *m = new Member();
+    Member *m = arena.create<Member>();;
     *m = *mem;
     cur = cur->next = m;
   }
@@ -1480,7 +1482,7 @@ Relocation *write_gvar_data(Relocation *cur, Initializer *init, Type *ty, char* 
     return cur;
   }
 
-  Relocation *rel = new Relocation();
+  Relocation *rel = arena.create<Relocation>();
   rel->offset = offset;
   rel->label = label;
   rel->addend = static_cast<long>(val);
@@ -2564,7 +2566,7 @@ void struct_members(Token **rest, Token *tok, Type *ty) {
     // Anonymous struct member
     if ((basety->kind == TY_STRUCT || basety->kind == TY_UNION) &&
         consume(&tok, tok, ";")) {
-      Member *mem = new Member();
+      Member *mem = arena.create<Member>();;
       mem->ty = basety;
       mem->idx = idx++;
       mem->align = attr.align ? attr.align : mem->ty->align;
@@ -2578,7 +2580,7 @@ void struct_members(Token **rest, Token *tok, Type *ty) {
         tok = skip(tok, ",");
       first = false;
 
-      Member *mem = new Member();
+      Member *mem = arena.create<Member>();;
       mem->ty = declarator(&tok, tok, basety);
       mem->name = mem->ty->name;
       mem->idx = idx++;
