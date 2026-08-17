@@ -22,7 +22,7 @@ void hashmap_put2(HashMap& map, const std::string& key, int keylen, void *val) {
 }
 void hashmap_delete(HashMap& map, const std::string& key) {
   auto it = map.find(key);
-  if(it!=nullptr) map.erase(it);
+  if(it!=map.end()) map.erase(it);
 }
 void hashmap_delete2(HashMap& map, const std::string& key, int keylen) {
   hashmap_delete(map, key.substr(0, keylen));

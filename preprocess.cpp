@@ -1057,18 +1057,32 @@ Token *base_file_macro(Token *tmpl) {
 }
 
 // __DATE__ is expanded to the current date, e.g. "May 17 2020".
-std::string format_date() {
+std::string format_date(struct tm* tm) {
+  #ifdef __ANDROID__
+  static char mon[][4] = {
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+  };
+
+  return format("\"{%s} {%2d} {%d}\"", mon[tm->tm_mon], tm->tm_mday, tm->tm_year + 1900);
+  #else
   auto date = std::chrono::system_clock::now();
   auto local_time = std::chrono::current_zone()->to_local(date);
 
   return std::format("{:%b %d %Y}", local_time);
+  #endif
 }
 
 // __TIME__ is expanded to the current time, e.g. "13:34:03".
-std::string format_time() {
+std::string format_time(struct tm* tm) {
+  #ifdef __ANDROID__
+  // android dont support chrono::current_zone()
+  return format("\"%02d:%02d:%02d\"", tm->tm_hour, tm->tm_min, tm->tm_sec);
+  #else
   auto now = std::chrono::system_clock::now();
   auto local_time = std::chrono::current_zone()->to_local(now);
   return std::format("{:%T}\n", local_time);
+  #endif
 }
 
 void init_macros() {
@@ -1120,8 +1134,10 @@ void init_macros() {
   add_builtin("__TIMESTAMP__", timestamp_macro);
   add_builtin("__BASE_FILE__", base_file_macro);
 
-  define_macro("__DATE__", format_date());
-  define_macro("__TIME__", format_time());
+  time_t now = time(NULL);
+  struct tm *tm = localtime(&now);
+  define_macro("__DATE__", format_date(tm));
+  define_macro("__TIME__", format_time(tm));
 }
 
 typedef enum {

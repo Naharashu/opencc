@@ -1,0 +1,2 @@
+aarch64-linux-android-clang++ -std=c++20 -g -ferror-limit=0 -fno-common -Wall -Wextra -Wno-switch -g -O0   -c -o hashmap.o hashmap.cpp
+aarch64-linux-android-clang++ -std=c++20 -g -ferror-limit=0 -fno-common -Wall -Wextra -Wno-switch -g -O0   -c -o hashmap.o hashmap.cpp
