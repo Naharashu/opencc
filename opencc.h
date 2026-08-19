@@ -22,6 +22,15 @@
 #define MAX(x, y) ((x) < (y) ? (y) : (x))
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
 
+enum cstd_ver : uint8_t {
+	ANSIC89_C90 = 1,
+	C99_,
+	C11_,
+	C23_,
+};
+
+static enum cstd_ver Cstandard=C11_; 
+
 #ifndef __GNUC__
 # define __attribute__(x)
 #endif

@@ -327,6 +327,46 @@ static void parse_args(int argc, char** argv) {
       exit(0);
     }
 
+    if(strncmp(argv[i], "-std=", 5)==0) {
+		std::string_view arg = argv[i];
+		std::string_view standard = arg.substr(5);
+		if(standard.empty()) {
+			std::cerr << "Usage of -std=: -std=CStandard\n";
+			exit(1);
+		}
+		if(standard == "c89" || standard == "c90" 
+			|| standard == "ansi"
+			|| standard == "gnu90"
+		) {
+			// C90 standard currently ignored
+			Cstandard = ANSIC89_C90;
+			std::cout << "Note: C90 currently ignored\n";
+		} else if(
+			standard == "c99" || standard == "gnu99"
+		) {
+			// C99 standard
+			Cstandard = C99_;
+		} else if(
+			standard == "c11" || standard == "gnu11"
+		) {
+			// C11 standard
+			Cstandard = C11_;
+		} else if(
+			standard == "c23" || standard == "gnu23"
+		) {
+			Cstandard = C23_;
+		}
+		 else {
+			std::cerr <<"Unknown standard of C: " << standard << '\n';
+			std::cerr << "Supported:\n" 
+			<< "\t c89 or c90 or ansi + gnu90\n"
+			<< "\t c99 + gnu99\n"
+			<< "\t c11 + gnu11\n"
+			<< "\t c23 + gnu23\n";
+			exit(1);
+		}
+    }
+
     // These options are ignored for now.
     if (!strncmp(argv[i], "-O", 2) ||
         !strncmp(argv[i], "-W", 2) ||
