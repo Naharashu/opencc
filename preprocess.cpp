@@ -297,6 +297,11 @@ long eval_const_expr(Token **rest, Token* tok) {
   // equivalent to `#if 0` if foo is not defined.
   for (Token *t = expr; t->kind != TK_EOF; t = t->next) {
     if (t->kind == TK_IDENT) {
+      Macro *m = find_macro(t);
+      if (!m) {
+        std::string name(t->loc.data(), t->len);
+        warn_tok(*t, format("undefined macro '%s' treated as 0", name.c_str()));
+      }
       Token *next = t->next;
       *t = *new_num_token(0, t);
       t->next = next;
