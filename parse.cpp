@@ -444,6 +444,10 @@ Type *declspec(Token **rest, Token *tok, VarAttr *attr) {
       continue;
 
     if (equal(tok, "_Atomic")) {
+      if(Cstandard<C11_) {
+      	std::cerr << "Error: _Atomic is C11 feature\n";
+      	exit(1);
+      }
       tok = tok->next;
       if (equal(tok , "(")) {
         ty = type_name(&tok, tok->next);
@@ -2884,12 +2888,20 @@ Node *postfix(Token **rest, Token *tok) {
 
 // funcall = (assign ("," assign)*)? ")"
 Node *funcall(Token **rest, Token *tok, Node *fn) {
+  fprintf(stderr,
+          "FUNCALL: token='%.*s' at %s:%d\n",
+                  fn->tok->len,
+                          fn->tok->loc.c_str(),
+                                  fn->tok->file->name.c_str(),
+                                          fn->tok->line_no);         
   add_type(fn);
 
   if (fn->ty->kind != TY_FUNC &&
-      (fn->ty->kind != TY_PTR || fn->ty->base->kind != TY_FUNC))
+      (fn->ty->kind != TY_PTR || fn->ty->base->kind != TY_FUNC)) {
+    fprintf(stderr, "NOT FUNCTION: token='%.*s', type=%d\n",
+            fn->tok->len, fn->tok->loc.c_str(), fn->ty->kind);
     error_tok(*fn->tok, "not a function");
-
+  }
   Type *ty = (fn->ty->kind == TY_FUNC) ? fn->ty : fn->ty->base;
   Type *param_ty = ty->params;
 

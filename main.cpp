@@ -68,7 +68,7 @@ static void add_default_include_paths(std::string argv0) {
   strarray_push(include_paths, "/usr/local/include");
   strarray_push(include_paths, "/usr/include/x86_64-linux-gnu");
   strarray_push(include_paths, "/usr/include");
-
+  strarray_push(include_paths, "/data/data/com.termux/files/usr/include"); // Termux
   // Keep a copy of the standard include paths for -MMD option.
   for (int i = 0; i < include_paths.size(); i++)
     strarray_push(std_include_paths, include_paths.at(i).c_str());
@@ -428,7 +428,13 @@ static void cleanup() {
 }
 
 static std::string create_tmpfile() {
-  std::string path = strdup("/tmp/chibicc-XXXXXX");
+  #ifdef __ANDROID__
+  std::string path = "/data/data/com.termux/files/usr/tmp/chibicc-XXXXXX"; // android termux, because /data/local/tmp gives permission error
+  #elif defined(_WIN32)
+  #error "OpenCC doesnt suppprted on windows\n"
+  #else
+  std::string path = "/tmp/chibicc-XXXXXX"; // Unix(Linux, BSD, MacOS, etc)
+  #endif
   int fd = mkstemp(path.data());
   if (fd == -1)
     error(format("mkstemp failed: %s", strerror(errno)));

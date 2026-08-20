@@ -1,6 +1,5 @@
-#include <stdio.h>
+#include <android/binder_status.h>
 
 int main() {
-	printf("Hello, World!\n");
-	return 0;
+    return 0;
 }
