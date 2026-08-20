@@ -7,7 +7,7 @@ OpenCC is a fork of [chibicc](https://github.com/rui314/chibicc), but with a cat
 ## Features
 
 ✓ - done
-? - InDev/Partitial
+? - InDev/Partial
 ✗ - not implemented 
 
 - [✓] -std= flag support
@@ -17,3 +17,5 @@ OpenCC is a fork of [chibicc](https://github.com/rui314/chibicc), but with a cat
 - [✗] better error and warning handling
 - [✗] contexpr, auto keywords
 - [?] bool, true, false as keywords
+- [✗] basic optimizations
+- [✗] advanced optimizations
