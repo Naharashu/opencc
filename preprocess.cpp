@@ -277,14 +277,23 @@ Token *read_const_expr(Token **rest, Token* tok) {
     	consume(&tok, tok->next, "("); // require (
     	bool type_of_header = consume(&tok, tok->next,"\""); // if "this.h"
     	if(type_of_header) {
-    		std::string header;
-    		while() {
-    			tok->
-    		}
+    		bool &is_dquote;
+       	        std::string filename = read_include_filename(&tok, tok->next, &is_dquote);
     	} else {
     		type_of_header = consume(&tok, tok->next, "<"); / if <this.h>
     		if(!type_of_header) error("Usage of __has_include:\n__has_include(<stdlib.h>) or __has_include(\"this.h\")");
-    		
+    		bool &is_dquote;
+    	        std::string filename = read_include_filename(&tok, tok->next, &is_dquote);
+	        if (filename[0] != '/' && is_dquote) {
+                std::string path = start->file->name + '/' + filename;
+        if (std::filesystem::exists(path)) {
+          tok = include_file(tok, path, start->next->next);
+          continue;
+        }
+      }
+
+      std::string path = search_include_paths(filename);
+      tok = include_file(tok, !path.empty() ? path : filename, start->next->next);
     	}
     	
     }
@@ -1161,7 +1170,6 @@ void init_macros() {
   add_builtin("__COUNTER__", counter_macro);
   add_builtin("__TIMESTAMP__", timestamp_macro);
   add_builtin("__BASE_FILE__", base_file_macro);
-  add_builtin("__has_include", has_include)
 
   time_t now = time(NULL);
   struct tm *tm = localtime(&now);
