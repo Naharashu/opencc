@@ -272,6 +272,21 @@ Token *read_const_expr(Token **rest, Token* tok) {
 
       cur = cur->next = new_num_token(m ? 1 : 0, start);
       continue;
+    } else if(equal(tok, "__has_include")) {
+    	Token* start = tok;
+    	consume(&tok, tok->next, "("); // require (
+    	bool type_of_header = consume(&tok, tok->next,"\""); // if "this.h"
+    	if(type_of_header) {
+    		std::string header;
+    		while() {
+    			tok->
+    		}
+    	} else {
+    		type_of_header = consume(&tok, tok->next, "<"); / if <this.h>
+    		if(!type_of_header) error("Usage of __has_include:\n__has_include(<stdlib.h>) or __has_include(\"this.h\")");
+    		
+    	}
+    	
     }
 
     cur = cur->next = tok;
@@ -1115,21 +1130,29 @@ void init_macros() {
   define_macro("__STDC__", "1");
   define_macro("__USER_LABEL_PREFIX__", "");
   define_macro("__alignof__", "_Alignof");
+  #if defined(__amd64__) || defined(__amd64)
   define_macro("__amd64", "1");
   define_macro("__amd64__", "1");
+  define_macro("__x86_64", "1");
+  define_macro("__x86_64__", "1");
+  #else
+  define_macro("__aarch64__", "1");
+  #endif
   define_macro("__opencc__", "1");
   define_macro("__const__", "const");
   define_macro("__gnu_linux__", "1");
   define_macro("__inline__", "inline");
   define_macro("__linux", "1");
   define_macro("__linux__", "1");
+  #ifdef __ANDROID__
+  define_macro("__ANDROID__", "1");
+  define_macro("__LP64__", "1");
+  #endif
   define_macro("__signed__", "signed");
   define_macro("__typeof__", "typeof");
   define_macro("__unix", "1");
   define_macro("__unix__", "1");
   define_macro("__volatile__", "volatile");
-  define_macro("__x86_64", "1");
-  define_macro("__x86_64__", "1");
   define_macro("linux", "1");
   define_macro("unix", "1");
 
@@ -1138,6 +1161,7 @@ void init_macros() {
   add_builtin("__COUNTER__", counter_macro);
   add_builtin("__TIMESTAMP__", timestamp_macro);
   add_builtin("__BASE_FILE__", base_file_macro);
+  add_builtin("__has_include", has_include)
 
   time_t now = time(NULL);
   struct tm *tm = localtime(&now);
