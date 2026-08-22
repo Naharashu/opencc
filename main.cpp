@@ -69,6 +69,7 @@ static void add_default_include_paths(std::string argv0) {
   strarray_push(include_paths, "/usr/include/x86_64-linux-gnu");
   strarray_push(include_paths, "/usr/include");
   strarray_push(include_paths, "/data/data/com.termux/files/usr/include"); // Termux
+  strarray_push(include_paths, "/data/data/com.termux/files/usr/include/aarch64-linux-android"); // Also termux
   // Keep a copy of the standard include paths for -MMD option.
   for (int i = 0; i < include_paths.size(); i++)
     strarray_push(std_include_paths, include_paths.at(i).c_str());
