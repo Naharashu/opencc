@@ -425,8 +425,10 @@ Type *declspec(Token **rest, Token *tok, VarAttr *attr) {
         attr->is_extern = true;
       else if (equal(tok, "inline"))
         attr->is_inline = true;
-      else
-        attr->is_tls = true;
+      else {
+        if(Cstandard<C11_&&!(equal(tok, "__thread"))) error("_Thread_local is C11 feature(-std=c11), use __thread instead");
+        else attr->is_tls = true;
+      }
 
       if (attr->is_typedef &&
           attr->is_static + attr->is_extern + attr->is_inline + attr->is_tls > 1)
@@ -2887,13 +2889,7 @@ Node *postfix(Token **rest, Token *tok) {
 }
 
 // funcall = (assign ("," assign)*)? ")"
-Node *funcall(Token **rest, Token *tok, Node *fn) {
-  fprintf(stderr,
-          "FUNCALL: token='%.*s' at %s:%d\n",
-                  fn->tok->len,
-                          fn->tok->loc.c_str(),
-                                  fn->tok->file->name.c_str(),
-                                          fn->tok->line_no);         
+Node *funcall(Token **rest, Token *tok, Node *fn) {    
   add_type(fn);
 
   if (fn->ty->kind != TY_FUNC &&

@@ -78,6 +78,9 @@ int include_next_idx;
 
 Token *preprocess2(Token* tok);
 Macro *find_macro(Token* tok);
+std::string join_tokens(Token* tok, Token *end);
+std::string read_include_filename(Token **rest, Token* tok, bool *is_dquote);
+Token *include_file(Token* tok, std::string& path, Token *filename_tok);
 
 bool is_hash(Token* tok) {
   return tok->at_bol && equal(tok, "#");
@@ -272,30 +275,47 @@ Token *read_const_expr(Token **rest, Token* tok) {
 
       cur = cur->next = new_num_token(m ? 1 : 0, start);
       continue;
-    } else if(equal(tok, "__has_include")) {
-    	Token* start = tok;
-    	consume(&tok, tok->next, "("); // require (
-    	bool type_of_header = consume(&tok, tok->next,"\""); // if "this.h"
-    	if(type_of_header) {
-    		bool &is_dquote;
-       	        std::string filename = read_include_filename(&tok, tok->next, &is_dquote);
-    	} else {
-    		type_of_header = consume(&tok, tok->next, "<"); / if <this.h>
-    		if(!type_of_header) error("Usage of __has_include:\n__has_include(<stdlib.h>) or __has_include(\"this.h\")");
-    		bool &is_dquote;
-    	        std::string filename = read_include_filename(&tok, tok->next, &is_dquote);
-	        if (filename[0] != '/' && is_dquote) {
-                std::string path = start->file->name + '/' + filename;
-        if (std::filesystem::exists(path)) {
-          tok = include_file(tok, path, start->next->next);
-          continue;
-        }
+    } else if (equal(tok, "__has_include")) {
+      Token *start = tok;
+      tok = skip(tok->next, "(");
+
+      bool is_dquote = false;
+      std::string filename;
+
+      if (tok->kind == TK_STR) {
+        is_dquote = true;
+        filename.assign(tok->loc.data() + 1, tok->len - 2);
+        tok = tok->next;
+      } else if (equal(tok, "<")) {
+        Token *end = tok;
+        for (; !equal(end, ">"); end = end->next)
+          if (end->at_bol || end->kind == TK_EOF)
+            error_tok(*end, "expected '>'");
+        filename = join_tokens(tok->next, end);
+        tok = end->next;
+      } else {
+        error("Usage of __has_include:\n__has_include(<stdlib.h>) or __has_include(\"this.h\")");
       }
 
-      std::string path = search_include_paths(filename);
-      tok = include_file(tok, !path.empty() ? path : filename, start->next->next);
-    	}
-    	
+      tok = skip(tok, ")");
+
+      bool found = false;
+      if (filename[0] == '/') {
+        found = std::filesystem::exists(filename);
+      } else if (is_dquote) {
+        std::string path = start->file->name + '/' + filename;
+        found = std::filesystem::exists(path);
+        if (!found) {
+          std::string resolved = search_include_paths(filename);
+          found = !resolved.empty();
+        }
+      } else {
+        std::string resolved = search_include_paths(filename);
+        found = !resolved.empty();
+      }
+
+      cur = cur->next = new_num_token(found ? 1 : 0, start);
+      continue;
     }
 
     cur = cur->next = tok;
@@ -322,10 +342,12 @@ long eval_const_expr(Token **rest, Token* tok) {
   for (Token *t = expr; t->kind != TK_EOF; t = t->next) {
     if (t->kind == TK_IDENT) {
       Macro *m = find_macro(t);
+      /*
       if (!m) {
         std::string name(t->loc.data(), t->len);
         warn_tok(*t, format("undefined macro '%s' treated as 0", name.c_str()));
       }
+      */
       Token *next = t->next;
       *t = *new_num_token(0, t);
       t->next = next;

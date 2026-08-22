@@ -29,7 +29,7 @@ enum cstd_ver : uint8_t {
 	C23_,
 };
 
-static enum cstd_ver Cstandard=C11_; 
+extern enum cstd_ver Cstandard;
 
 #ifndef __GNUC__
 # define __attribute__(x)

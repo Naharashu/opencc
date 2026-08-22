@@ -1,8 +1,13 @@
-static inline void f1() {}
-static inline void f2() {
-	f1();
-}
+#include <stdio.h>
 
-void foo() { f1(); }
+#if __has_include(<stdio.h>)
+int x = 1;
+#else
+int x = 0;
+#endif
 
-void main() { foo(); };
+_Thread_local y = 2;
+
+void main() {
+	printf("%d\n", x);
+};
