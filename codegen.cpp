@@ -463,8 +463,21 @@ static void push_struct(Type *ty) {
   depth += sz / 8;
 
   for (int i = 0; i < ty->size; i++) {
-    println("  mov %d(%%rax), %%r10b", i);
-    println("  mov %%r10b, %d(%%rsp)", i);
+    if(i+16<=ty->size) {
+       println("  movdqu %d(%%rax),  %%xmm0", i);
+       println("  movdqu %%xmm0,   %d(%%rdi)", i);
+       i+=16;
+     }
+     if (i + 8 <= ty->size) {
+       println("  mov %d(%%rax), %%r8", i);
+       println("  mov %%r8, %d(%%rdi)", i);
+       i += 8;
+     }
+     else {
+       println("  mov %d(%%rax), %%r8b", i);
+       println("  mov %%r8b, %d(%%rdi)", i);
+       i++;
+    }
   }
 }
 
@@ -687,7 +700,7 @@ static void builtin_alloca() {
   println("  sub %%rdi, %%rsp");
   println("  mov %%rsp, %%rdx");
   println("1:");
-  println("  cmp $0, %%rcx");
+  println("  test %%rcx, %%rcx");
   println("  je 2f");
   println("  mov (%%rax), %%r8b");
   println("  mov %%r8b, (%%rdx)");
@@ -1133,9 +1146,15 @@ static void gen_expr(Node *node) {
   case ND_SUB:
     println("  sub %s, %s", di.c_str(), ax.c_str());
     return;
-  case ND_MUL:
+  case ND_MUL: {
+    if (val > 0 && (val & (val - 1)) == 0) {
+      int shift = __builtin_ctzll(val);
+      println("  shl $%d, %%rax", shift);
+      return;
+    }
     println("  imul %s, %s", di.c_str(), ax.c_str());
     return;
+  }
   case ND_DIV:
   case ND_MOD:
     if (node->ty->is_unsigned) {
