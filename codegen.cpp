@@ -234,9 +234,22 @@ static void store(Type *ty) {
   switch (ty->kind) {
   case TY_STRUCT:
   case TY_UNION:
-    for (int i = 0; i < ty->size; i++) {
-      println("  mov %d(%%rax), %%r8b", i);
-      println("  mov %%r8b, %d(%%rdi)", i);
+    for (int i = 0; i < ty->size;) {
+      if(i+16<=ty->size) {
+      	println("  movdqu %d(%%rax),  %%xmm0", i);
+      	println("  movdqu %%xmm0,   %d(%%rdi)", i);
+      	i+=16;
+      }
+      if (i + 8 <= ty->size) {
+      	println("  mov %d(%%rax), %%r8", i);
+      	println("  mov %%r8, %d(%%rdi)", i);
+        i += 8;
+      } 
+      else {
+        println("  mov %d(%%rax), %%r8b", i);
+        println("  mov %%r8b, %d(%%rdi)", i);
+        i++;
+      }
     }
     return;
   case TY_FLOAT:
@@ -263,11 +276,11 @@ static void store(Type *ty) {
 static void cmp_zero(Type *ty) {
   switch (ty->kind) {
   case TY_FLOAT:
-    println("  xorps %%xmm1, %%xmm1");
+    println("  pxor %%xmm1, %%xmm1");
     println("  ucomiss %%xmm1, %%xmm0");
     return;
   case TY_DOUBLE:
-    println("  xorpd %%xmm1, %%xmm1");
+    println("  pxor %%xmm1, %%xmm1");
     println("  ucomisd %%xmm1, %%xmm0");
     return;
   case TY_LDOUBLE:
@@ -278,9 +291,9 @@ static void cmp_zero(Type *ty) {
   }
 
   if (is_integer(ty) && ty->size <= 4)
-    println("  cmp $0, %%eax");
+    println("  test %%eax, %%eax");
   else
-    println("  cmp $0, %%rax");
+    println("  test %%rax, %%rax");
 }
 
 enum { I8, I16, I32, I64, U8, U16, U32, U64, F32, F64, F80 };
