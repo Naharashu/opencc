@@ -1,5 +1,6 @@
 #include "opencc.h"
 #include <cassert>
+#include <string>
 
 #define GP_MAX 6
 #define FP_MAX 8
@@ -1147,7 +1148,9 @@ static void gen_expr(Node *node) {
     println("  sub %s, %s", di.c_str(), ax.c_str());
     return;
   case ND_MUL: {
+    auto val = node->rhs->val;
     if (val > 0 && (val & (val - 1)) == 0) {
+      gen_expr(node->lhs);
       int shift = __builtin_ctzll(val);
       println("  shl $%d, %%rax", shift);
       return;

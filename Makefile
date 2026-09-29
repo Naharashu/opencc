@@ -1,4 +1,4 @@
-override CXXFLAGS = -std=c++20 -g -ferror-limit=0 -fno-common -Wall -Wextra -Wno-switch -g -O2
+override CXXFLAGS = -std=c++20 -g -fno-common -Wall -Wextra -Wno-switch -g -O2
 
 SRCS=$(wildcard *.cpp)
 OBJS=$(SRCS:.cpp=.o)
@@ -6,7 +6,7 @@ OBJS=$(SRCS:.cpp=.o)
 TEST_SRCS=$(wildcard test/*.cpp)
 TESTS=$(TEST_SRCS:.cpp=.exe)
 
-override CC = g++
+override CC = clang++
 
 # Stage 1
 
