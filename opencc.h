@@ -29,6 +29,23 @@ enum cstd_ver : uint8_t {
 	C23_,
 };
 
+enum march : uint8_t {
+  x86_64_v1 = 0,
+  x86_64_v2 = 1,
+  x86_64_v2_AVX = 2,
+  x86_64_v3 = 3,
+  x86_64_v4 = 4,
+};
+
+enum optimization_level : uint8_t {
+  NONE = 0,
+  O1 = 1,
+  O2 = 2,
+  O3 = 3,
+};
+
+extern enum optimization_level Olevel;
+extern enum march March;
 extern enum cstd_ver Cstandard;
 
 #ifndef __GNUC__
@@ -165,6 +182,7 @@ Token *tokenize_file(std::string filename);
 
 std::string search_include_paths(std::string filename);
 void init_macros(void);
+void define_march_macros();
 void define_macro(const std::string& name, const std::string& buf);
 void undef_macro(const std::string& name);
 Token *preprocess(Token *tok);
@@ -273,6 +291,9 @@ typedef enum : uint8_t {
   ND_ASM,       // "asm"
   ND_CAS,       // Atomic compare-and-swap
   ND_EXCH,      // Atomic exchange
+  ND_POPCNT,
+  ND_CLZ,
+  ND_CTZ,
 } NodeKind;
 
 // AST node type

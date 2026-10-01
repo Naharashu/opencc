@@ -320,5 +320,10 @@ void add_type(Node *node) {
       error_tok(*node->cas_addr->tok, "pointer expected");
     node->ty = node->lhs->ty->base;
     return;
-  }
+  case ND_POPCNT:
+  case ND_CLZ:
+  case ND_CTZ:
+    node->ty = ty_int;
+    return;
+  } 
 }

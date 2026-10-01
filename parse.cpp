@@ -2987,6 +2987,17 @@ Node *generic_selection(Token **rest, Token *tok) {
   return ret;
 }
 
+static Node *builtin_bitop(Token **rest, Token *tok, NodeKind kind, bool is64) {
+  Token *start = tok;
+  tok = skip(tok->next, "(");
+  Node *arg = assign(&tok, tok);
+  *rest = skip(tok, ")");
+
+  Node *node = new_unary(kind, new_cast(arg, is64 ? ty_ulong : ty_uint), start);
+  node->ty = ty_int;
+  return node;
+}
+
 // primary = "(" "{" stmt+ "}" ")"
 //         | "(" expr ")"
 //         | "sizeof" "(" type-name ")"
@@ -3075,6 +3086,16 @@ Node *primary(Token **rest, Token *tok) {
       return new_num(1, start);
     return new_num(2, start);
   }
+
+  if (equal(tok, "__builtin_popcount"))   return builtin_bitop(rest, tok, ND_POPCNT, false);
+  if (equal(tok, "__builtin_popcountl") || equal(tok, "__builtin_popcountll"))
+                                          return builtin_bitop(rest, tok, ND_POPCNT, true);
+  if (equal(tok, "__builtin_clz"))        return builtin_bitop(rest, tok, ND_CLZ, false);
+  if (equal(tok, "__builtin_clzl")  || equal(tok, "__builtin_clzll"))
+                                          return builtin_bitop(rest, tok, ND_CLZ, true);
+  if (equal(tok, "__builtin_ctz"))        return builtin_bitop(rest, tok, ND_CTZ, false);
+  if (equal(tok, "__builtin_ctzl")  || equal(tok, "__builtin_ctzll"))
+                                          return builtin_bitop(rest, tok, ND_CTZ, true);
 
   if (equal(tok, "__builtin_compare_and_swap")) {
     Node *node = new_node(ND_CAS, tok);

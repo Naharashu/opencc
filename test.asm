@@ -41,6 +41,8 @@
   .file 41 "/usr/include/bits/floatn-common.h"
   .file 42 "/usr/include/features.h"
   .file 43 "/usr/include/bits/long-double.h"
+  .arch .sse4.2
+  .arch .popcnt
   .local .L..23
   .data
   .type .L..23, @object
@@ -717,8 +719,7 @@ fzero:
   movsd %xmm0, (%rsp)
   .loc 1 32
   .loc 1 32
-  lea -12(%rbp), %rax
-  movss (%rax), %xmm0
+  movss -12(%rbp), %xmm0
   movsd (%rsp), %xmm1
   add $8, %rsp
   ucomiss %xmm0, %xmm1
@@ -760,26 +761,20 @@ copy:
   .loc 1 27
   .loc 1 27
   .loc 1 27
-  lea -16(%rbp), %rax
-  mov (%rax), %rax
+  mov -16(%rbp), %rax
   push %rax
   .loc 1 27
   .loc 1 27
-  lea -24(%rbp), %rax
-  mov (%rax), %rax
+  mov -24(%rbp), %rax
   pop %rdi
   movdqu 0(%rax),  %xmm0
   movdqu %xmm0,   0(%rdi)
-  mov 16(%rax), %r8
-  mov %r8, 16(%rdi)
-  movdqu 24(%rax),  %xmm0
-  movdqu %xmm0,   24(%rdi)
-  mov 40(%rax), %r8
-  mov %r8, 40(%rdi)
+  movdqu 16(%rax),  %xmm0
+  movdqu %xmm0,   16(%rdi)
+  movdqu 32(%rax),  %xmm0
+  movdqu %xmm0,   32(%rdi)
   movdqu 48(%rax),  %xmm0
   movdqu %xmm0,   48(%rdi)
-  mov 64(%rax), %r8b
-  mov %r8b, 64(%rdi)
 .L.return.copy:
   mov %rbp, %rsp
   pop %rbp
@@ -796,8 +791,6 @@ inc_dec:
   .loc 1 15
   .loc 1 15
   .loc 1 15
-  lea -12(%rbp), %rax
-  push %rax
   .loc 1 15
   .loc 1 15
   .loc 1 15
@@ -806,16 +799,12 @@ inc_dec:
   push %rax
   .loc 1 15
   .loc 1 15
-  lea -12(%rbp), %rax
-  movsxd (%rax), %rax
+  movsxd -12(%rbp), %rax
   pop %rdi
   add %edi, %eax
-  pop %rdi
-  mov %eax, (%rdi)
+  mov %eax, -12(%rbp)
   .loc 1 16
   .loc 1 16
-  lea -12(%rbp), %rax
-  push %rax
   .loc 1 16
   .loc 1 16
   .loc 1 16
@@ -824,17 +813,14 @@ inc_dec:
   push %rax
   .loc 1 16
   .loc 1 16
-  lea -12(%rbp), %rax
-  movsxd (%rax), %rax
+  movsxd -12(%rbp), %rax
   pop %rdi
   sub %edi, %eax
-  pop %rdi
-  mov %eax, (%rdi)
+  mov %eax, -12(%rbp)
   .loc 1 17
   .loc 1 17
   .loc 1 17
-  lea -12(%rbp), %rax
-  movsxd (%rax), %rax
+  movsxd -12(%rbp), %rax
   jmp .L.return.inc_dec
 .L.return.inc_dec:
   mov %rbp, %rsp
@@ -859,8 +845,7 @@ mul_lea3:
   push %rax
   .loc 1 10
   .loc 1 10
-  lea -12(%rbp), %rax
-  movsxd (%rax), %rax
+  movsxd -12(%rbp), %rax
   pop %rdi
   imul %edi, %eax
   jmp .L.return.mul_lea3
@@ -887,8 +872,7 @@ mul_pow2:
   push %rax
   .loc 1 5
   .loc 1 5
-  lea -12(%rbp), %rax
-  movsxd (%rax), %rax
+  movsxd -12(%rbp), %rax
   pop %rdi
   imul %edi, %eax
   jmp .L.return.mul_pow2
@@ -913,8 +897,7 @@ __va_arg_fp:
   .loc 16 36
   .loc 16 36
   .loc 16 36
-  lea -32(%rbp), %rax
-  mov (%rax), %rax
+  mov -32(%rbp), %rax
   add $4, %rax
   movsxd (%rax), %rax
   push %rax
@@ -932,18 +915,15 @@ __va_arg_fp:
   .loc 16 37
   .loc 16 37
   .loc 16 37
-  lea -40(%rbp), %rax
-  movsxd (%rax), %rax
+  movsxd -40(%rbp), %rax
   push %rax
   .loc 16 37
   .loc 16 37
-  lea -36(%rbp), %rax
-  movsxd (%rax), %rax
+  movsxd -36(%rbp), %rax
   push %rax
   .loc 16 37
   .loc 16 37
-  lea -32(%rbp), %rax
-  mov (%rax), %rax
+  mov -32(%rbp), %rax
   push %rax
   .loc 16 37
   lea __va_arg_mem(%rip), %rax
@@ -971,8 +951,6 @@ __va_arg_fp:
   mov $0, %al
   rep stosb
   .loc 16 39
-  lea -16(%rbp), %rax
-  push %rax
   .loc 16 39
   .loc 16 39
   .loc 16 39
@@ -984,8 +962,7 @@ __va_arg_fp:
   .loc 16 39
   .loc 16 39
   .loc 16 39
-  lea -32(%rbp), %rax
-  mov (%rax), %rax
+  mov -32(%rbp), %rax
   add $4, %rax
   movsxd (%rax), %rax
   mov %eax, %eax
@@ -995,30 +972,23 @@ __va_arg_fp:
   .loc 16 39
   .loc 16 39
   .loc 16 39
-  lea -32(%rbp), %rax
-  mov (%rax), %rax
+  mov -32(%rbp), %rax
   add $16, %rax
   mov (%rax), %rax
   pop %rdi
   add %rdi, %rax
-  pop %rdi
-  mov %rax, (%rdi)
+  mov %rax, -16(%rbp)
   .loc 16 40
   .loc 16 40
   .loc 16 40
-  lea -8(%rbp), %rax
-  push %rax
   .loc 16 40
   .loc 16 40
   .loc 16 40
-  lea -32(%rbp), %rax
-  mov (%rax), %rax
-  pop %rdi
-  mov %rax, (%rdi)
+  mov -32(%rbp), %rax
+  mov %rax, -8(%rbp)
   .loc 16 40
   .loc 16 40
-  lea -8(%rbp), %rax
-  mov (%rax), %rax
+  mov -8(%rbp), %rax
   add $4, %rax
   push %rax
   .loc 16 40
@@ -1030,8 +1000,7 @@ __va_arg_fp:
   .loc 16 40
   .loc 16 40
   .loc 16 40
-  lea -8(%rbp), %rax
-  mov (%rax), %rax
+  mov -8(%rbp), %rax
   add $4, %rax
   movsxd (%rax), %rax
   pop %rdi
@@ -1041,8 +1010,7 @@ __va_arg_fp:
   .loc 16 41
   .loc 16 41
   .loc 16 41
-  lea -16(%rbp), %rax
-  mov (%rax), %rax
+  mov -16(%rbp), %rax
   jmp .L.return.__va_arg_fp
 .L.return.__va_arg_fp:
   mov %rbp, %rsp
@@ -1065,8 +1033,7 @@ __va_arg_gp:
   .loc 16 27
   .loc 16 27
   .loc 16 27
-  lea -32(%rbp), %rax
-  mov (%rax), %rax
+  mov -32(%rbp), %rax
   add $0, %rax
   movsxd (%rax), %rax
   push %rax
@@ -1084,18 +1051,15 @@ __va_arg_gp:
   .loc 16 28
   .loc 16 28
   .loc 16 28
-  lea -40(%rbp), %rax
-  movsxd (%rax), %rax
+  movsxd -40(%rbp), %rax
   push %rax
   .loc 16 28
   .loc 16 28
-  lea -36(%rbp), %rax
-  movsxd (%rax), %rax
+  movsxd -36(%rbp), %rax
   push %rax
   .loc 16 28
   .loc 16 28
-  lea -32(%rbp), %rax
-  mov (%rax), %rax
+  mov -32(%rbp), %rax
   push %rax
   .loc 16 28
   lea __va_arg_mem(%rip), %rax
@@ -1123,8 +1087,6 @@ __va_arg_gp:
   mov $0, %al
   rep stosb
   .loc 16 30
-  lea -16(%rbp), %rax
-  push %rax
   .loc 16 30
   .loc 16 30
   .loc 16 30
@@ -1136,8 +1098,7 @@ __va_arg_gp:
   .loc 16 30
   .loc 16 30
   .loc 16 30
-  lea -32(%rbp), %rax
-  mov (%rax), %rax
+  mov -32(%rbp), %rax
   add $0, %rax
   movsxd (%rax), %rax
   mov %eax, %eax
@@ -1147,30 +1108,23 @@ __va_arg_gp:
   .loc 16 30
   .loc 16 30
   .loc 16 30
-  lea -32(%rbp), %rax
-  mov (%rax), %rax
+  mov -32(%rbp), %rax
   add $16, %rax
   mov (%rax), %rax
   pop %rdi
   add %rdi, %rax
-  pop %rdi
-  mov %rax, (%rdi)
+  mov %rax, -16(%rbp)
   .loc 16 31
   .loc 16 31
   .loc 16 31
-  lea -8(%rbp), %rax
-  push %rax
   .loc 16 31
   .loc 16 31
   .loc 16 31
-  lea -32(%rbp), %rax
-  mov (%rax), %rax
-  pop %rdi
-  mov %rax, (%rdi)
+  mov -32(%rbp), %rax
+  mov %rax, -8(%rbp)
   .loc 16 31
   .loc 16 31
-  lea -8(%rbp), %rax
-  mov (%rax), %rax
+  mov -8(%rbp), %rax
   add $0, %rax
   push %rax
   .loc 16 31
@@ -1182,8 +1136,7 @@ __va_arg_gp:
   .loc 16 31
   .loc 16 31
   .loc 16 31
-  lea -8(%rbp), %rax
-  mov (%rax), %rax
+  mov -8(%rbp), %rax
   add $0, %rax
   movsxd (%rax), %rax
   pop %rdi
@@ -1193,8 +1146,7 @@ __va_arg_gp:
   .loc 16 32
   .loc 16 32
   .loc 16 32
-  lea -16(%rbp), %rax
-  mov (%rax), %rax
+  mov -16(%rbp), %rax
   jmp .L.return.__va_arg_gp
 .L.return.__va_arg_gp:
   mov %rbp, %rsp
@@ -1225,23 +1177,18 @@ __va_arg_mem:
   mov $0, %al
   rep stosb
   .loc 16 19
-  lea -8(%rbp), %rax
-  push %rax
   .loc 16 19
   .loc 16 19
   .loc 16 19
-  lea -24(%rbp), %rax
-  mov (%rax), %rax
+  mov -24(%rbp), %rax
   add $8, %rax
   mov (%rax), %rax
-  pop %rdi
-  mov %rax, (%rdi)
+  mov %rax, -8(%rbp)
   .loc 16 20
   .loc 16 20
   .loc 16 20
   .loc 16 20
-  lea -32(%rbp), %rax
-  movsxd (%rax), %rax
+  movsxd -32(%rbp), %rax
   push %rax
   .loc 16 20
   .loc 16 20
@@ -1254,8 +1201,6 @@ __va_arg_mem:
   je  .L.else.4
   .loc 16 21
   .loc 16 21
-  lea -8(%rbp), %rax
-  push %rax
   .loc 16 21
   .loc 16 21
   .loc 16 21
@@ -1287,8 +1232,7 @@ __va_arg_mem:
   push %rax
   .loc 16 21
   .loc 16 21
-  lea -8(%rbp), %rax
-  mov (%rax), %rax
+  mov -8(%rbp), %rax
   pop %rdi
   add %rdi, %rax
   pop %rdi
@@ -1296,16 +1240,14 @@ __va_arg_mem:
   div %rdi
   pop %rdi
   imul %rdi, %rax
-  pop %rdi
-  mov %rax, (%rdi)
+  mov %rax, -8(%rbp)
   jmp .L.end.4
 .L.else.4:
 .L.end.4:
   .loc 16 22
   .loc 16 22
   .loc 16 22
-  lea -24(%rbp), %rax
-  mov (%rax), %rax
+  mov -24(%rbp), %rax
   add $8, %rax
   push %rax
   .loc 16 22
@@ -1333,15 +1275,13 @@ __va_arg_mem:
   .loc 16 22
   .loc 16 22
   .loc 16 22
-  lea -28(%rbp), %rax
-  movsxd (%rax), %rax
+  movsxd -28(%rbp), %rax
   movsxd %eax, %rax
   push %rax
   .loc 16 22
   .loc 16 22
   .loc 16 22
-  lea -8(%rbp), %rax
-  mov (%rax), %rax
+  mov -8(%rbp), %rax
   pop %rdi
   add %rdi, %rax
   pop %rdi
@@ -1356,8 +1296,7 @@ __va_arg_mem:
   .loc 16 23
   .loc 16 23
   .loc 16 23
-  lea -8(%rbp), %rax
-  mov (%rax), %rax
+  mov -8(%rbp), %rax
   jmp .L.return.__va_arg_mem
 .L.return.__va_arg_mem:
   mov %rbp, %rsp

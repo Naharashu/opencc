@@ -1136,6 +1136,33 @@ std::string format_time(struct tm* tm) {
   #endif
 }
 
+void define_march_macros() {
+  if (March >= x86_64_v2) {
+    define_macro("__SSE3__", "1");
+    define_macro("__SSSE3__", "1");
+    define_macro("__SSE4_1__", "1");
+    define_macro("__SSE4_2__", "1");
+    define_macro("__POPCNT__", "1");
+  }
+  if (March >= x86_64_v2_AVX)
+    define_macro("__AVX__", "1");
+  if (March >= x86_64_v3) {
+    define_macro("__AVX2__", "1");
+    define_macro("__FMA__", "1");
+    define_macro("__BMI__", "1");
+    define_macro("__BMI2__", "1");
+    define_macro("__LZCNT__", "1");
+  }
+  if (March >= x86_64_v4) {
+    define_macro("__AVX512F__", "1");
+    define_macro("__AVX512VL__", "1");
+    define_macro("__AVX512BW__", "1");
+    define_macro("__AVX512DQ__", "1");
+    define_macro("__AVX512CD__", "1");
+  }
+}
+
+
 void init_macros() {
   // Define predefined macros
   define_macro("_LP64", "1");
@@ -1166,6 +1193,10 @@ void init_macros() {
   define_macro("__amd64__", "1");
   define_macro("__x86_64", "1");
   define_macro("__x86_64__", "1");
+  define_macro("__SSE__", "1");
+  define_macro("__SSE2__", "1");
+  define_macro("__SSE_MATH__", "1");
+  define_macro("__SSE2_MATH__", "1");
   #else
   define_macro("__aarch64__", "1");
   #endif

@@ -1,10 +1,12 @@
 #include "opencc.h"
 #include <cassert>
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <string>
 #include <unistd.h>
 #include <vector>
+#include <cpuid.h>
 
 typedef enum : uint8_t {
   FILE_NONE, FILE_C, FILE_ASM, FILE_OBJ, FILE_AR, FILE_DSO,
@@ -364,6 +366,111 @@ static void parse_args(int argc, char** argv) {
         << "\t c99 + gnu99\n"
         << "\t c11 + gnu11\n"
         << "\t c23 + gnu23\n";
+        exit(1);
+      }
+      continue;
+    }
+
+    if(strncmp(argv[i], "-O", 2)==0) {
+      std::string_view arg = argv[i];
+      std::string_view opt = arg.substr(2);
+      if(opt.empty()) {
+        std::cerr << "Usage of -O: -Onumber(0, 1, 2 or 3)\n";
+        exit(1);
+      }
+
+      else if(opt=="0") {
+        continue; // by default
+      } else if(opt=="1") {
+        Olevel = O1;
+      } else if(opt=="2") {
+        Olevel = O2;
+      } else if(opt=="3") {
+        Olevel = O3;
+      }
+      
+      else {
+        std::cerr <<"Unknown standard of Optimization level: " << arg << '\n';
+        std::cerr << "Supported:\n" 
+        << "\t -O0, -O1, -O2, -O3\n";
+        exit(1);
+      }
+      continue;
+    }
+
+    if(strncmp(argv[i], "-march=",7)==0) {
+      std::string_view arg = argv[i];
+      std::string_view arch = arg.substr(7);
+      if(arch.empty()) {
+        std::cerr << "Usage of -march=: -march=Architecture\n";
+        exit(1);
+      }
+      if(arch == "x86-64-v1" || arch == "x86-64" 
+        || arch == "x64"
+        || arch == "pentium4" || arch == "core2" || arch == "nocona"
+      ) {
+        // baseline x64 (SSE2)
+        March = x86_64_v1;
+      } else if(
+        arch == "nehalem" || arch == "x86-64-v2" || arch == "corei7" || arch == "sandybridge" || arch == "ivybridge" || arch == "westmere"
+      ) {
+        // v2, SSE4.2, POPCNT
+        if(arch == "ivybridge" || arch == "sandybridge") March = x86_64_v2_AVX;
+        else March = x86_64_v2;
+      } else if(
+        arch == "x86-64-v3" || arch == "haswell" || arch == "znver1" || arch == "core-avx2"
+      ) {
+        // v3, AVX2, BMI, FMA3
+        March = x86_64_v3;
+      } else if(
+        arch == "x86-64-v4" || arch == "znver4" || arch == "skylake-avx512"
+      ) {
+        // v4, AVX512
+        March = x86_64_v4;
+      } else if(arch == "native") {
+        // detect with cpuid
+        uint32_t eax = 0, ebx = 0, ecx = 0, edx = 0;
+        __cpuid_count(1, 0, eax, ebx, ecx, edx);
+
+        bool has_sse3   = (ecx & (1 << 0));
+        bool has_ssse3  = (ecx & (1 << 9));
+        bool has_sse41  = (ecx & (1 << 19));
+        bool has_sse42  = (ecx & (1 << 20));
+        bool has_popcnt = (ecx & (1 << 23));
+        bool has_avx    = (ecx & (1 << 28));
+        bool has_fma    = (ecx & (1 << 12));
+
+        __cpuid_count(7, 0, eax, ebx, ecx, edx);
+
+        bool has_bmi1   = (ebx & (1 << 3));
+        bool has_avx2   = (ebx & (1 << 5));
+        bool has_bmi2   = (ebx & (1 << 8));
+
+        bool has_avx512f  = (ebx & (1 << 16));
+        bool has_avx512dq = (ebx & (1 << 17));
+        bool has_avx512cd = (ebx & (1 << 28));
+        bool has_avx512bw = (ebx & (1 << 30));
+        bool has_avx512vl = (ebx & (1 << 31));
+
+        if (has_avx512f && has_avx512dq && has_avx512cd && has_avx512bw && has_avx512vl) {
+          March = x86_64_v4;
+        }
+        
+        else if (has_avx && has_avx2 && has_fma && has_bmi1 && has_bmi2) {
+          March = x86_64_v3;
+        }
+        
+        else if (has_sse3 && has_ssse3 && has_sse41 && has_sse42 && has_popcnt) {
+          if(has_avx) March = x86_64_v2_AVX;
+          else March = x86_64_v2;
+        }
+
+        else March = x86_64_v1;
+      }
+      else {
+        std::cerr <<"Unknown arch: " << arch << '\n';
+        std::cerr << "Supported:\n" 
+        << "\t x86-64-v1 x86-64 x86-64-v2 x86-64-v3 x64 x86-64-v4 pentium4 haswell core-avx2 skylake-avx512 znver1 znver4 sandybridge ivybridge westmere nehalem core2 nocona native\n";
         exit(1);
       }
       continue;
@@ -792,11 +899,14 @@ static FileType get_file_type(std::string filename) {
 }
 
 enum cstd_ver Cstandard = C11_;
+enum march March = x86_64_v1;
+enum optimization_level Olevel = NONE;
 
 int main(int argc, char** argv) {
   atexit(cleanup);
   init_macros();
   parse_args(argc, argv);
+  define_march_macros();
 
   if (opt_cc1) {
     add_default_include_paths(argv[0]);
